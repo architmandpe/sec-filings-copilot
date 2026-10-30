@@ -49,5 +49,47 @@ def get_cik(ticker: str) -> str:
     raise ValueError(f"Unknown ticker: {ticker}")
 
 
+def get_submissions(cik: str) -> dict:
+    """Return the company's filing index from the submissions API."""
+    raw = fetch_cached(
+        f"https://data.sec.gov/submissions/CIK{cik}.json",
+        CACHE_DIR / cik / "submissions.json",
+    )
+    return json.loads(raw)
+
+
+def list_filings(cik: str, form: str = "10-K", limit: int = 3) -> list[dict]:
+    """Return the most recent filings of one form type, newest first."""
+    recent = get_submissions(cik)["filings"]["recent"]
+    filings = []
+    for i, form_type in enumerate(recent["form"]):
+        if form_type != form:
+            continue
+        accession = recent["accessionNumber"][i]
+        document = recent["primaryDocument"][i]
+        filings.append({
+            "cik": cik,
+            "form": form_type,
+            "accession": accession,
+            "filing_date": recent["filingDate"][i],
+            "report_date": recent["reportDate"][i],
+            "document": document,
+            "url": f"https://www.sec.gov/Archives/edgar/data/{int(cik)}/{accession.replace('-', '')}/{document}",
+        })
+        if len(filings) == limit:
+            break
+    return filings
+
+
+def download_filing(filing: dict) -> Path:
+    """Download a filing's primary document and return the local path."""
+    path = CACHE_DIR / filing["cik"] / filing["accession"] / filing["document"]
+    fetch_cached(filing["url"], path)
+    return path
+
+
 if __name__ == "__main__":
-    print(get_cik("MSFT"))
+    cik = get_cik("AAPL")
+    for filing in list_filings(cik):
+        path = download_filing(filing)
+        print(filing["report_date"], filing["accession"], path)
