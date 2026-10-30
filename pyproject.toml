@@ -5,6 +5,7 @@ description = "Local QA and analysis copilot over SEC 10-K/10-Q filings"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "beautifulsoup4>=4.15.0",
     "python-dotenv>=1.2.4",
     "requests>=2.34.2",
 ]
