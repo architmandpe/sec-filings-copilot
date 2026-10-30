@@ -14,3 +14,9 @@ data/
 
 #macOS
 .DS_Store
+
+# .env
+.env
+
+# vscode settings
+.vscode
