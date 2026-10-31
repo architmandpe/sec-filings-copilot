@@ -8,7 +8,9 @@ dependencies = [
     "beautifulsoup4>=4.15.0",
     "duckdb>=2.0.0",
     "mlx-lm>=0.32.2",
+    "numpy>=2.5.4",
     "pandas>=3.1.0",
     "python-dotenv>=1.2.4",
     "requests>=2.34.2",
+    "sentence-transformers>=6.2.0",
 ]

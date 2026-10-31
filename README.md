@@ -12,6 +12,8 @@ uv sync
 cp .env.example .env   # then edit .env with your name and email
 uv run python -m ingest.edgar   # download filings into data/raw/
 uv run python -m ingest.parse   # split them into Item sections in data/parsed/
+uv run python -m ingest.xbrl    # load XBRL financial facts into data/financials.duckdb
+uv run python -m retrieval.index   # chunk and embed sections into data/index/
 ```
 
 ## What failed and why
@@ -33,6 +35,13 @@ A running log of problems found, why they happened, and what was done about them
 | Filtering by `fiscal_year = 2023` returns three different years of revenue | In companyfacts, `fy` is the fiscal year of the *filing* that reported a value, and each 10-K repeats the two prior years for comparison | **Fixed:** the `annual` view identifies the period by its dates and keeps one row per company, concept and fiscal year, with the latest filing's value winning |
 | Microsoft's FY2008 and FY2009 values were labeled FY2010 | First rule labeled a period with the first 10-K that reported it, but XBRL data starts at the FY2010 10-K, whose comparison years have no 10-K of their own in the data | **Fixed:** each 10-K defines its own fiscal year-end (latest full-year period it reports); periods without their own 10-K are dropped instead of mislabeled |
 | Two rows for the same concept and year (e.g. Apple's 2017 buyback authorization) | Instant facts at dates other than the fiscal year-end, such as announcement dates, were kept | **Fixed:** only facts dated on a fiscal year-end are kept. Verified by a query that counts duplicate company/concept/year rows: 0 |
+
+### Chunking and retrieval
+
+| Problem | Cause | Status |
+|---|---|---|
+| Chunk `fiscal_year` is taken from the calendar year of the fiscal year-end date | Simplification for the baseline; correct for Apple (September) and Microsoft (June) | **Open:** wrong for companies that name a fiscal year by its starting year (some retailers); use the filing's own fiscal year label when they are added |
+| Some chunks contain nothing but a page footer (e.g. Item 6 "[Reserved]" → `Apple Inc. \| 2024 Form 10-K \| 19`) | Footers remain in section text (see Parsing), and every non-empty section produces at least one chunk | **Open:** junk chunks can take retrieval slots; fix footers and/or drop very short chunks, and measure the effect in Week 3 |
 
 ### Data limitations
 
