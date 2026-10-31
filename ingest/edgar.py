@@ -87,6 +87,13 @@ def download_filing(filing: dict) -> Path:
     fetch_cached(filing["url"], path)
     return path
 
+def get_company_facts(cik: str) -> dict:
+    """Return every XBRL fact the company has reported, from the companyfacts API."""
+    raw = fetch_cached(
+        f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json",
+        CACHE_DIR / cik / "companyfacts.json",
+    )
+    return json.loads(raw)
 
 if __name__ == "__main__":
     cik = get_cik("AAPL")
