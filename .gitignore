@@ -20,3 +20,6 @@ data/
 
 # vscode settings
 .vscode
+
+# Claude Code project context (kept local)
+CLAUDE.md
