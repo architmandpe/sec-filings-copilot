@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "beautifulsoup4>=4.15.0",
+    "datasets>=5.1.0",
     "duckdb>=2.0.0",
     "mlx-lm>=0.32.2",
     "numpy>=2.5.4",
