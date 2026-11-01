@@ -3,7 +3,7 @@
 A fully local, open-source question-answering and analysis system over SEC 10-K and 10-Q filings.
 Answers questions with cited evidence, computes financial metrics, and refuses when evidence is missing.
 
-**Status:** Week 1, data ingestion.
+**Status:** Week 1: thin end-to-end baseline complete (dense retrieval → cited answer from a local LLM).
 
 ## Setup
 
@@ -14,6 +14,8 @@ uv run python -m ingest.edgar   # download filings into data/raw/
 uv run python -m ingest.parse   # split them into Item sections in data/parsed/
 uv run python -m ingest.xbrl    # load XBRL financial facts into data/financials.duckdb
 uv run python -m retrieval.index   # chunk and embed sections into data/index/
+uv run python -m retrieval.search  # show the top chunks for sample questions
+uv run python -m agent.answer      # retrieve and answer sample questions with citations
 ```
 
 ## What failed and why
@@ -42,6 +44,17 @@ A running log of problems found, why they happened, and what was done about them
 |---|---|---|
 | Chunk `fiscal_year` is taken from the calendar year of the fiscal year-end date | Simplification for the baseline; correct for Apple (September) and Microsoft (June) | **Open:** wrong for companies that name a fiscal year by its starting year (some retailers); use the filing's own fiscal year label when they are added |
 | Some chunks contain nothing but a page footer (e.g. Item 6 "[Reserved]" → `Apple Inc. \| 2024 Form 10-K \| 19`) | Footers remain in section text (see Parsing), and every non-empty section produces at least one chunk | **Open:** junk chunks can take retrieval slots; fix footers and/or drop very short chunks, and measure the effect in Week 3 |
+| Retrieval scores cannot tell answerable questions from unanswerable ones (CEO pay: top score 0.750, supply chain: 0.754) | Dense search always returns the k nearest chunks, however unrelated | **By design:** refusal must come from the generator (and later a reranker score), not a similarity threshold |
+
+### Answer generation
+
+| Problem | Cause | Status |
+|---|---|---|
+| Supply-chain question answered partly with a financial-risk chunk (credit risk, counterparty failure), cited correctly but irrelevant | Dense retrieval returned macroeconomic Risk Factor chunks, and the model listed every excerpt as part of the answer | **Open:** measure answer relevance separately from citation faithfulness in Week 2; try a reranker in Week 3 |
+| Answers mix fiscal years without saying so (supply-chain answer cites FY2024 and FY2025 chunks) | No fiscal-year filter in retrieval; near-duplicate passages exist in every year's 10-K | **Open:** fiscal-year metadata filter in Week 3 |
+| Refusals tested only on questions where no retrieved chunk was relevant (CEO pay, 2030 revenue) | Baseline smoke test had 4 questions | **Open:** false refusals (refusing when the answer is in the excerpts) are measured with the Week 2 question set |
+
+Verified: the baseline's answer for Apple's FY2024 R&D ($31,370 million, from the 10-K text) matches the XBRL fact in DuckDB.
 
 ### Data limitations
 
