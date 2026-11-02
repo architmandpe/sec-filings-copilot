@@ -1,0 +1,21 @@
+financebench_id,doc_name,question_type,verdict,corrected_answer,note
+financebench_id_00438,ADOBE_2022_10K,domain-relevant,correct,,"Operating income / total revenue: 6,098/17,606 = 34.6%, 5,802/15,785 = 36.8%. Justification divides by subscription revenue (16,388; 14,573) instead, which gives 37.2% and 39.8%; the answer is right, the justification is not"
+financebench_id_00720,AMERICANEXPRESS_2022_10K,domain-relevant,correct,,Judgment answer: a card issuer's income statement has no cost of goods sold or gross profit line; defensible
+financebench_id_01028,AMERICANEXPRESS_2022_10K,domain-relevant,correct,,"Segment table: United States, EMEA, APAC, LACC"
+financebench_id_01328,PEPSICO_2022_10K,domain-relevant,ambiguous,0,"Question asks for restructuring costs directly outlined in the income statement, else 0. The income statement has no restructuring line; 411 comes from the cash flow statement (operating adjustment) and Note 3. Literal reading gives 0, loose reading gives 411"
+financebench_id_01244,CVSHEALTH_2022_10K,domain-relevant,correct,,Quarterly dividend $0.55 per share in 2022
+financebench_id_00222,AMD_2022_10K,domain-relevant,correct,,"(4,835 + 1,020 + 4,126 + 2) / 6,369 = 1.57"
+financebench_id_00566,VERIZON_2022_10K,domain-relevant,correct,,"Total debt 150,639 vs 150,868: down 229"
+financebench_id_01163,NIKE_2023_10K,domain-relevant,correct,,"Operations +5,841, investing +564, financing -7,447 (MD&A text in our filing)"
+financebench_id_07507,ADOBE_2016_10K,metrics-generated,correct,,"Operating income 1,493,602 / 903,095 - 1 = 65.4% (thousands)"
+financebench_id_06247,WALMART_2018_10K,metrics-generated,correct,,"XBRL: AP 46,092 / 41,433, inventory 43,783 / 43,046, cost of sales 373,396: 365 x 43,762.5 / 374,133 = 42.69"
+financebench_id_04660,BLOCK_2016_10K,metrics-generated,correct,,"1,001,425 / 577,464 = 1.73"
+financebench_id_06272,COCACOLA_2022_10K,metrics-generated,correct,,"Dividends 7,616 / net income attributable 9,542 = 0.80"
+financebench_id_10420,AES_2022_10K,metrics-generated,correct,,"-546 / ((38,363 + 32,963) / 2) = -0.015, rounds to -0.02"
+financebench_id_04854,GENERALMILLS_2020_10K,metrics-generated,correct,,"XBRL: 3,676.2 - 460.8 = 3,215.4"
+financebench_id_06655,AMAZON_2017_10K,metrics-generated,correct,,"XBRL: AP 34,616 / 25,309, inventory 16,047 / 11,461, cost of sales 111,934: 365 x 29,962.5 / 116,520 = 93.86"
+financebench_id_04700,MICROSOFT_2016_10K,metrics-generated,correct,,"Total cost of revenue 32,780"
+financebench_id_00464,BOEING_2022_10K,novel-generated,correct,,Filing states the airline industry has been cyclical
+financebench_id_00283,Pfizer_2023Q2_10Q,novel-generated,wrong,70,"~$700M expected, ~90% incurred, so ~10% = ~$70M remains; gold computes 700/9 = 77.78, which is ~11%"
+financebench_id_01936,AMCOR_2023Q2_10Q,novel-generated,correct,,"Employee costs 81 of 93 total liability = 87%; factually right but only partly answers ""nature & purpose"""
+financebench_id_00299,JPMORGAN_2021Q1_10Q,novel-generated,correct,,"Corporate total net revenue -473, lowest of the five segments"
