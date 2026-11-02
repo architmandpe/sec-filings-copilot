@@ -16,6 +16,8 @@ uv run python -m ingest.xbrl    # load XBRL financial facts into data/financials
 uv run python -m ingest.corpus  # match and download the 75 corpus filings into data/raw/, list them in data/corpus.jsonl
 uv run python -m ingest.parse   # split them into Item sections in data/parsed/
 uv run python -m retrieval.index   # chunk and embed sections into data/index/
+uv run python -m evals.questions   # convert FinanceBench into the eval question format, with audited corrections
+uv run python -m evals.gold        # check that every question's evidence is found in the indexed chunks
 uv run python -m retrieval.search  # show the top chunks for sample questions
 uv run python -m agent.answer      # retrieve and answer sample questions with citations
 ```
@@ -37,6 +39,7 @@ A running log of problems found, why they happened, and what was done about them
 | CVS 2018's MD&A and financial statements are missing from the 10-K | Incorporated by reference from Exhibit 13 (the annual report) | **Fixed:** every 10-K's EDGAR index page is checked for `EX-13*` documents; CVS 2018 is the only one, parsed as section `EX-13.1` |
 | Financial statements located after Item 15 are labeled Item 15/16 (Ulta, Corning, Netflix, PayPal, Activision, PepsiCo); JPMorgan's 10-K and 10-Qs put everything after a cross-reference index | Item 8 only says "see Item 15"; JPMorgan's filings are an annual report wrapped in a 10-K | **Open:** no text is lost (coverage ≥ 0.91 for every filing), only the Item label is wrong; fix when section filters are added (Week 3) |
 | In some older filings a table row's label and numbers land on separate lines (Walmart 2018, Amazon 2017, General Mills 2020: `Accounts payable` then its values below) | Table cells contain their own block tags (`<p>`, `<div>`), so each cell gets a newline | **Open:** numbers are separated from their labels inside chunks; address with table-aware chunking (Week 3) |
+| Cover pages were missing from the index, so questions like "which debt securities are registered on an exchange?" (3 FinanceBench questions) had no evidence anywhere | `split_sections` only kept text from the first Item heading onward | **Fixed:** text before the first heading becomes a `COVER` section (it also contains the table of contents). Found because the gold-evidence matcher found no chunk for those 3 questions |
 | Pfizer's 10-Q has table-of-contents text under `II-3`/`II-4` | Those Items have no heading in the body, so their table-of-contents line is the last occurrence | **Open:** ~1,100 words of junk; harmless |
 
 ### XBRL financial data

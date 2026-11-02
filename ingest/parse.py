@@ -49,6 +49,9 @@ def split_sections(text: str, form: str) -> list[dict]:
             starts[key] = (i, match.group(2))
     headings = sorted((start, item, title) for item, (start, title) in starts.items())
     sections = []
+    if headings and headings[0][0] > 0:
+        # Cover page (and table of contents): fiscal year-end, registered securities, shares outstanding
+        sections.append({"item": "COVER", "title": "Cover page", "text": "\n".join(lines[:headings[0][0]])})
     for n, (start, item, title) in enumerate(headings):
         end = headings[n + 1][0] if n + 1 < len(headings) else len(lines)
         sections.append({"item": item, "title": title, "text": "\n".join(lines[start + 1:end])})
