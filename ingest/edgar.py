@@ -4,6 +4,7 @@ import time
 from pathlib import Path
 
 import requests
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -105,6 +106,20 @@ def download_filing(filing: dict) -> Path:
     path = CACHE_DIR / filing["cik"] / filing["accession"] / filing["document"]
     fetch_cached(filing["url"], path)
     return path
+
+
+def list_documents(filing: dict) -> list[dict]:
+    """Return every document in a filing (primary document and exhibits) with its type, from EDGAR's index page."""
+    folder = f"https://www.sec.gov/Archives/edgar/data/{int(filing['cik'])}/{filing['accession'].replace('-', '')}"
+    index_name = f"{filing['accession']}-index.htm"
+    html = fetch_cached(f"{folder}/{index_name}", CACHE_DIR / filing["cik"] / filing["accession"] / index_name)
+    table = BeautifulSoup(html, "html.parser").find("table", class_="tableFile")  # first table: document files
+    documents = []
+    for row in table.find_all("tr")[1:]:
+        cells = [td.get_text(" ", strip=True) for td in row.find_all("td")]
+        document = cells[2].split()[0]  # inline XBRL documents show "name.htm iXBRL"
+        documents.append({"type": cells[3], "document": document, "url": f"{folder}/{document}"})
+    return documents
 
 def get_company_facts(cik: str) -> dict:
     """Return every XBRL fact the company has reported, from the companyfacts API."""

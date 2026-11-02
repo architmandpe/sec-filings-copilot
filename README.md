@@ -13,8 +13,7 @@ cp .env.example .env   # then edit .env with your name and email
 uv run python -m evals.financebench   # download FinanceBench questions into data/evals/
 uv run python -m evals.manifest       # list the 72 10-K/10-Q filings they need
 uv run python -m ingest.xbrl    # load XBRL financial facts into data/financials.duckdb
-uv run python -m ingest.edgar   # download Apple's latest 10-Ks into data/raw/
-uv run python -m ingest.corpus  # match and download the FinanceBench filings into data/raw/
+uv run python -m ingest.corpus  # match and download the 75 corpus filings into data/raw/, list them in data/corpus.jsonl
 uv run python -m ingest.parse   # split them into Item sections in data/parsed/
 uv run python -m retrieval.index   # chunk and embed sections into data/index/
 uv run python -m retrieval.search  # show the top chunks for sample questions
@@ -32,6 +31,12 @@ A running log of problems found, why they happened, and what was done about them
 | Searching for "Item 1A" finds the table of contents, not the section | Every 10-K lists each Item twice: in the table of contents, then as the real heading | **Fixed:** keep the *last* occurrence of each Item heading, since the table of contents always comes first |
 | Page footers (e.g. `Apple Inc. \| 2023 Form 10-K \| 19`) remain inside section text | Footers are ordinary text in the HTML; seen as Item 6 "[Reserved]" having 8 words instead of 0 | **Open:** footer formats differ by company, so the fix waits until more companies are ingested |
 | Signatures page is attached to Item 16 | No Item heading follows the signatures to end the section | **Open:** harmless for now |
+| 10-Qs lost 87–99% of their text (coverage 0.01–0.13) | 10-Q Items restart in Part II, so "keep the last Item 1" kept Part II's Legal Proceedings and dropped Part I (financial statements, MD&A) | **Fixed:** 10-Q sections are keyed by Part and Item (`I-1`, `I-2`, `II-1A`). Coverage now 0.92–0.99 |
+| Microsoft's MD&A and financial statements were filed under the wrong Items (Item 7: 267 words) | Microsoft prints `Item 8` at the top of 41 pages; keep-last chose the last page | **Fixed:** heading lines repeated 3+ times are treated as page headers and ignored |
+| Adobe 2017's Item 8 was a press-release paragraph | `Item 8.01. Other Events` (an 8-K item number quoted in the text) matched as Item 8 | **Fixed:** a dot followed by a digit is not a heading. The first attempt also rejected `Item 7—Title` (Costco) and accepted `Item 1, Business Segments, provides…` (a cross-reference); the final regex lists the allowed separators: `.` `:` dashes, space, end of line |
+| CVS 2018's MD&A and financial statements are missing from the 10-K | Incorporated by reference from Exhibit 13 (the annual report) | **Fixed:** every 10-K's EDGAR index page is checked for `EX-13*` documents; CVS 2018 is the only one, parsed as section `EX-13.1` |
+| Financial statements located after Item 15 are labeled Item 15/16 (Ulta, Corning, Netflix, PayPal, Activision, PepsiCo); JPMorgan's 10-K and 10-Qs put everything after a cross-reference index | Item 8 only says "see Item 15"; JPMorgan's filings are an annual report wrapped in a 10-K | **Open:** no text is lost (coverage ≥ 0.91 for every filing), only the Item label is wrong; fix when section filters are added (Week 3) |
+| Pfizer's 10-Q has table-of-contents text under `II-3`/`II-4` | Those Items have no heading in the body, so their table-of-contents line is the last occurrence | **Open:** ~1,100 words of junk; harmless |
 
 ### XBRL financial data
 
@@ -53,7 +58,7 @@ A running log of problems found, why they happened, and what was done about them
 | JPMorgan's 2021–2023 10-Ks/10-Qs are missing from `filings.recent` | `recent` holds one year or 1,000 filings, and JPMorgan files ~23,000 prospectuses a year; older filings are on 71 extra pages | **Fixed:** filings are found via the XBRL catalog, then only the submissions page covering the filing date is fetched |
 | "Fiscal year 2023" is ambiguous | Ulta calls its year ending January 2023 "fiscal 2022" and FinanceBench calls it 2023; Best Buy's quarter ending July 2023 is in "fiscal 2024"; J&J's year ending January 1, 2023 is "fiscal 2022" | **Fixed:** a fiscal year is named by the calendar year it ends in, minus 7 days for 52/53-week years ending in early January; a 10-Q takes the fiscal year of the next 10-K year-end. Verified: all 9 FinanceBench filings with a known accession match, and every manifest filing matches exactly one accession |
 | A wrong J&J filing passed the "exactly one match" check | Uniqueness doesn't prove correctness; J&J's link had no accession to compare against | **Fixed** (rule above); found by reading the question evidence ("At January 1, 2023"). Lesson: only known answers test correctness |
-| CVS 2018 10-K is 0.9 MB (CVS 2022: 6.0 MB) | Probably MD&A and financial statements are in Exhibit 13 and incorporated by reference | **Open:** check Item 8 when parsing (Step 2.2d) |
+| CVS 2018 10-K is 0.9 MB (CVS 2022: 6.0 MB) | MD&A and financial statements are in Exhibit 13, incorporated by reference | **Fixed:** see Parsing |
 | Some FinanceBench gold answers are wrong (Pfizer Upjohn costs: 77.78 instead of ~70) or contradict their justification (American Water Works working capital) | Human labeling errors | **Open:** failures are checked against the filing during error analysis; label corrections are logged |
 
 ### Chunking and retrieval
