@@ -36,4 +36,4 @@ if __name__ == "__main__":
     ]:
         print(f"\n{question}")
         for hit in retriever.search(question):
-            print(f"  {hit['score']:.3f}  {hit['id']:<18} {hit['text'][:90]!r}")
+            print(f"  {hit['score']:.3f}  {hit['id']:<28} {hit['text'][:80]!r}")

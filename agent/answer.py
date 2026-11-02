@@ -13,7 +13,7 @@ SYSTEM_PROMPT = f"""You answer questions about companies using only excerpts fro
 
 Rules:
 1. Use only the information in the excerpts. Do not use outside knowledge.
-2. After every claim, cite the excerpt it comes from by its ID in square brackets, e.g. [AAPL-2024-1A-003].
+2. After every claim, cite the excerpt it comes from by its ID in square brackets, e.g. [APPLE_2024_10K-1A-003].
 3. Copy numbers exactly as they appear in the excerpts, with their units (e.g. "in millions").
 4. If the excerpts do not contain the answer, reply with exactly: "{REFUSAL}" followed by one sentence saying what information is missing."""
 
@@ -21,7 +21,7 @@ Rules:
 def format_context(chunks: list[dict]) -> str:
     """Label each chunk with its ID and source so the model can cite it."""
     return "\n\n".join(
-        f"[{c['id']}] ({c['ticker']} {c['form']} FY{c['fiscal_year']}, Item {c['item']}: {c['title']})\n{c['text']}"
+        f"[{c['id']}] ({c['company']} {c['form']} FY{c['fiscal_year']} {c['fiscal_period']}, Item {c['item']}: {c['title']})\n{c['text']}"
         for c in chunks
     )
 

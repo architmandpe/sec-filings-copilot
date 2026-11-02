@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
-from ingest.edgar import get_cik, list_filings
+from ingest.corpus import CORPUS_PATH
 
 EMBED_MODEL = "BAAI/bge-small-en-v1.5"
 CHUNK_TOKENS = 400
@@ -26,21 +26,23 @@ def chunk_text(text: str, tokenizer) -> list[str]:
     return chunks
 
 
-def build_chunks(ticker: str, tokenizer) -> list[dict]:
-    """Chunk every section of the company's downloaded 10-Ks, with metadata for filtering and citation."""
-    cik = get_cik(ticker)
+def build_chunks(tokenizer) -> list[dict]:
+    """Chunk every section of every corpus filing, with metadata for filtering and citation."""
+    with open(CORPUS_PATH) as f:
+        corpus = [json.loads(line) for line in f]
     chunks = []
-    for filing in list_filings(cik):
-        fiscal_year = int(filing["report_date"][:4])  # wrong for companies that label FY by start year; see README
-        sections = json.loads((Path("data/parsed") / cik / f"{filing['accession']}.json").read_text())
+    for filing in corpus:
+        sections = json.loads((Path("data/parsed") / filing["cik"] / f"{filing['accession']}.json").read_text())
         for section in sections:
             for n, text in enumerate(chunk_text(section["text"], tokenizer)):
                 chunks.append({
-                    "id": f"{ticker}-{fiscal_year}-{section['item']}-{n:03d}",
-                    "ticker": ticker,
-                    "cik": cik,
+                    "id": f"{filing['doc_name']}-{section['item']}-{n:03d}",
+                    "company": filing["company"],
+                    "cik": filing["cik"],
                     "form": filing["form"],
-                    "fiscal_year": fiscal_year,
+                    "fiscal_year": filing["fiscal_year"],
+                    "fiscal_period": filing["fiscal_period"],
+                    "doc_name": filing["doc_name"],
                     "item": section["item"],
                     "title": section["title"],
                     "accession": filing["accession"],
@@ -52,7 +54,7 @@ def build_chunks(ticker: str, tokenizer) -> list[dict]:
 
 if __name__ == "__main__":
     model = SentenceTransformer(EMBED_MODEL)
-    chunks = build_chunks("AAPL", model.tokenizer)
+    chunks = build_chunks(model.tokenizer)
     embeddings = model.encode(
         [c["text"] for c in chunks], batch_size=32, normalize_embeddings=True, show_progress_bar=True
     )
