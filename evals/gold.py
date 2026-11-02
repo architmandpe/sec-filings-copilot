@@ -23,8 +23,10 @@ def normalize(text: str) -> str:
 
 
 def windows(text: str) -> list[str]:
-    """Consecutive non-overlapping windows of the normalized text."""
+    """Consecutive non-overlapping windows of the normalized text; a short quote is one window."""
     norm = normalize(text)
+    if 0 < len(norm) < WINDOW:
+        return [norm]
     return [norm[i:i + WINDOW] for i in range(0, len(norm) - WINDOW + 1, WINDOW)]
 
 

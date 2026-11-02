@@ -1,0 +1,1193 @@
+# Hand-written eval questions, in the same format as the converted FinanceBench questions.
+# Check after every edit:  python -m evals.own
+#
+# id           own-001, own-002, ... (never reuse or renumber: results refer to ids)
+# type         text | table | computation | multi_hop | unanswerable
+# question     as a user would ask it; name the company and fiscal year unless the question is about that ambiguity
+# answer       the correct answer in words, with units
+# answer_kind  number | yes_no | text | refuse   (unanswerable questions: refuse)
+# answer_value numbers only: the value in the unit of the answer (391035 for "$391,035 million", 46.2 for "46.2%")
+# filings      doc_names from data/corpus.jsonl the answer comes from (unanswerable: the filing a user would expect, or [])
+# evidence     one entry per fact the answer needs: the filing and a quote copied from it; spacing, punctuation and
+#              case don't matter, but the words and numbers must appear in that order (table rows: label then numbers)
+# notes        how the answer was checked, or why the question is unanswerable
+
+- id: own-001
+  type: table
+  question: What were Apple's total net sales in fiscal 2024?
+  answer: $391,035 million
+  answer_kind: number
+  answer_value: 391035
+  filings: [APPLE_2024_10K]
+  evidence:
+    - doc_name: APPLE_2024_10K
+      text: Total net sales $ 391,035
+  notes: Matches XBRL RevenueFromContractWithCustomerExcludingAssessedTax FY2024
+
+- id: own-002
+  type: computation
+  question: What was Apple's gross margin percentage in fiscal 2024?
+  answer: 46.2% (gross margin $180,683 million / net sales $391,035 million)
+  answer_kind: number
+  answer_value: 46.2
+  filings: [APPLE_2024_10K]
+  evidence:
+    - doc_name: APPLE_2024_10K
+      text: Total gross margin $ 180,683
+    - doc_name: APPLE_2024_10K
+      text: Total net sales $ 391,035
+  notes: The filing also states it directly ("Total gross margin percentage 46.2 %")
+
+- id: own-003
+  type: multi_hop
+  question: Which company spent more on research and development in fiscal 2023, Apple or Microsoft, and by how much?
+  answer: Apple, by $2,720 million ($29,915 million vs $27,195 million)
+  answer_kind: number
+  answer_value: 2720
+  filings: [APPLE_2023_10K, MICROSOFT_2023_10K]
+  evidence:
+    - doc_name: APPLE_2023_10K
+      text: Research and development $ 29,915
+    - doc_name: MICROSOFT_2023_10K
+      text: Research and development $ 27,195
+  notes: Fiscal years differ (Apple ends September 30, 2023; Microsoft June 30, 2023)
+
+- id: own-004
+  type: text
+  question: Where are Apple's outsourcing partners that manufacture its hardware products primarily located, according to its fiscal 2024 10-K?
+  answer: China mainland, India, Japan, South Korea, Taiwan and Vietnam
+  answer_kind: text
+  filings: [APPLE_2024_10K]
+  evidence:
+    - doc_name: APPLE_2024_10K
+      text: Substantially all of the Company's hardware products are manufactured by outsourcing partners that are located primarily in China mainland, India, Japan, South Korea, Taiwan and Vietnam.
+  notes: Item 1A Risk Factors
+
+- id: own-005
+  type: unanswerable
+  question: How much was Apple's CEO paid in fiscal 2024?
+  answer: Not in the 10-K. Item 11 (Executive Compensation) is incorporated by reference from the 2025 proxy statement, which is not in the corpus.
+  answer_kind: refuse
+  filings: [APPLE_2024_10K]
+  evidence: []
+  notes: Items 10-14 of every 10-K in the corpus point to the proxy statement (DEF 14A)
+
+# ---------------------------------------------------------------- table: one figure from a statement
+
+- id: own-006
+  type: table
+  question: What was Microsoft's total revenue in fiscal 2023?
+  answer: $211,915 million
+  answer_kind: number
+  answer_value: 211915
+  filings: [MICROSOFT_2023_10K]
+  evidence:
+    - doc_name: MICROSOFT_2023_10K
+      text: Total revenue 211,915
+  notes: Fiscal year ended June 30, 2023
+
+- id: own-007
+  type: table
+  question: What were Nike's revenues in fiscal 2023?
+  answer: $51,217 million
+  answer_kind: number
+  answer_value: 51217
+  filings: [NIKE_2023_10K]
+  evidence:
+    - doc_name: NIKE_2023_10K
+      text: Revenues $ 51,217
+  notes: Fiscal year ended May 31, 2023
+
+- id: own-008
+  type: table
+  question: What were Lockheed Martin's net sales in 2021?
+  answer: $67,044 million
+  answer_kind: number
+  answer_value: 67044
+  filings: [LOCKHEEDMARTIN_2021_10K]
+  evidence:
+    - doc_name: LOCKHEEDMARTIN_2021_10K
+      text: Net sales $ 67,044
+  notes: ""
+
+- id: own-009
+  type: table
+  question: What was JPMorgan Chase's net income in 2022?
+  answer: $37,676 million
+  answer_kind: number
+  answer_value: 37676
+  filings: [JPMORGAN_2022_10K]
+  evidence:
+    - doc_name: JPMORGAN_2022_10K
+      text: Net income $ 37,676
+  notes: ""
+
+- id: own-010
+  type: table
+  question: What was American Express's net income in 2022?
+  answer: $7,514 million
+  answer_kind: number
+  answer_value: 7514
+  filings: [AMERICANEXPRESS_2022_10K]
+  evidence:
+    - doc_name: AMERICANEXPRESS_2022_10K
+      text: Net income $ 7,514
+  notes: ""
+
+- id: own-011
+  type: table
+  question: What were PayPal's net revenues in 2022?
+  answer: $27,518 million
+  answer_kind: number
+  answer_value: 27518
+  filings: [PAYPAL_2022_10K]
+  evidence:
+    - doc_name: PAYPAL_2022_10K
+      text: Net revenues $ 27,518
+  notes: ""
+
+- id: own-012
+  type: table
+  question: What were Netflix's revenues in 2017?
+  answer: $11,692,713 thousand (about $11.69 billion)
+  answer_kind: number
+  answer_value: 11692713
+  filings: [NETFLIX_2017_10K]
+  evidence:
+    - doc_name: NETFLIX_2017_10K
+      text: Revenues $ 11,692,713
+  notes: Netflix reported in thousands of dollars
+
+- id: own-013
+  type: table
+  question: What was AMD's net revenue in 2022?
+  answer: $23,601 million
+  answer_kind: number
+  answer_value: 23601
+  filings: [AMD_2022_10K]
+  evidence:
+    - doc_name: AMD_2022_10K
+      text: Net revenue $ 23,601
+  notes: ""
+
+- id: own-014
+  type: table
+  question: What were Walmart's total revenues in fiscal 2020?
+  answer: $523,964 million
+  answer_kind: number
+  answer_value: 523964
+  filings: [WALMART_2020_10K]
+  evidence:
+    - doc_name: WALMART_2020_10K
+      text: Total revenues $ 523,964
+  notes: Fiscal year ended January 31, 2020
+
+- id: own-015
+  type: table
+  question: What was Best Buy's revenue in fiscal 2023?
+  answer: $46,298 million
+  answer_kind: number
+  answer_value: 46298
+  filings: [BESTBUY_2023_10K]
+  evidence:
+    - doc_name: BESTBUY_2023_10K
+      text: Revenue $ 46,298
+  notes: Fiscal year ended January 28, 2023
+
+- id: own-016
+  type: table
+  question: What were Pfizer's total revenues in 2021?
+  answer: $81,288 million
+  answer_kind: number
+  answer_value: 81288
+  filings: [PFIZER_2021_10K]
+  evidence:
+    - doc_name: PFIZER_2021_10K
+      text: Revenues $ 81,288
+  notes: ""
+
+- id: own-017
+  type: table
+  question: What were Johnson & Johnson's sales to customers in fiscal 2022?
+  answer: $94,943 million
+  answer_kind: number
+  answer_value: 94943
+  filings: [JOHNSON_JOHNSON_2022_10K]
+  evidence:
+    - doc_name: JOHNSON_JOHNSON_2022_10K
+      text: Sales to customers $ 94,943
+  notes: As originally reported; later restated to exclude Kenvue (XBRL annual view shows 79,990)
+
+- id: own-018
+  type: table
+  question: What were Amazon's total net sales in 2019?
+  answer: $280,522 million
+  answer_kind: number
+  answer_value: 280522
+  filings: [AMAZON_2019_10K]
+  evidence:
+    - doc_name: AMAZON_2019_10K
+      text: Total net sales 177,866 232,887 280,522
+  notes: Amazon's income statement lists 2017, 2018, 2019 left to right
+
+- id: own-019
+  type: table
+  question: What was Costco's total revenue in fiscal 2021?
+  answer: $195,929 million
+  answer_kind: number
+  answer_value: 195929
+  filings: [COSTCO_2021_10K]
+  evidence:
+    - doc_name: COSTCO_2021_10K
+      text: Total revenue 195,929
+  notes: Fiscal year ended August 29, 2021
+
+- id: own-020
+  type: table
+  question: What were Ulta Beauty's net sales for the fiscal year ended January 28, 2023?
+  answer: $10,208,580 thousand (about $10.21 billion)
+  answer_kind: number
+  answer_value: 10208580
+  filings: [ULTABEAUTY_2023_10K]
+  evidence:
+    - doc_name: ULTABEAUTY_2023_10K
+      text: Net sales $ 10,208,580
+  notes: Ulta calls this fiscal 2022; the corpus labels it 2023 (the calendar year it ends in)
+
+- id: own-021
+  type: table
+  question: What were Kraft Heinz's net sales in 2019?
+  answer: $24,977 million
+  answer_kind: number
+  answer_value: 24977
+  filings: [KRAFTHEINZ_2019_10K]
+  evidence:
+    - doc_name: KRAFTHEINZ_2019_10K
+      text: Net sales(a) $ 24,977
+  notes: Fiscal year ended December 28, 2019
+
+- id: own-022
+  type: table
+  question: What were Activision Blizzard's total net revenues in 2019?
+  answer: $6,489 million
+  answer_kind: number
+  answer_value: 6489
+  filings: [ACTIVISIONBLIZZARD_2019_10K]
+  evidence:
+    - doc_name: ACTIVISIONBLIZZARD_2019_10K
+      text: Total net revenues 6,489
+  notes: ""
+
+- id: own-023
+  type: table
+  question: What were Adobe's total assets at the end of fiscal 2022?
+  answer: $27,165 million
+  answer_kind: number
+  answer_value: 27165
+  filings: [ADOBE_2022_10K]
+  evidence:
+    - doc_name: ADOBE_2022_10K
+      text: Total assets $ 27,165
+  notes: Fiscal year ended December 2, 2022
+
+- id: own-024
+  type: table
+  question: What were Boeing's total revenues in 2022?
+  answer: $66,608 million
+  answer_kind: number
+  answer_value: 66608
+  filings: [BOEING_2022_10K]
+  evidence:
+    - doc_name: BOEING_2022_10K
+      text: Total revenues 66,608
+  notes: ""
+
+# ---------------------------------------------------------------- computation: arithmetic on figures from one filing
+
+- id: own-025
+  type: computation
+  question: What was Microsoft's operating margin in fiscal 2023?
+  answer: 41.8% (operating income $88,523 million / revenue $211,915 million)
+  answer_kind: number
+  answer_value: 41.8
+  filings: [MICROSOFT_2023_10K]
+  evidence:
+    - doc_name: MICROSOFT_2023_10K
+      text: Operating income 88,523
+    - doc_name: MICROSOFT_2023_10K
+      text: Total revenue 211,915
+  notes: ""
+
+- id: own-026
+  type: computation
+  question: What was Microsoft's net income as a percentage of revenue in fiscal 2023?
+  answer: 34.1% (net income $72,361 million / revenue $211,915 million)
+  answer_kind: number
+  answer_value: 34.1
+  filings: [MICROSOFT_2023_10K]
+  evidence:
+    - doc_name: MICROSOFT_2023_10K
+      text: Net income 72,361
+    - doc_name: MICROSOFT_2023_10K
+      text: Total revenue 211,915
+  notes: ""
+
+- id: own-027
+  type: computation
+  question: What was Nike's gross margin in fiscal 2023?
+  answer: 43.5% (gross profit $22,292 million / revenues $51,217 million)
+  answer_kind: number
+  answer_value: 43.5
+  filings: [NIKE_2023_10K]
+  evidence:
+    - doc_name: NIKE_2023_10K
+      text: Gross profit 22,292
+    - doc_name: NIKE_2023_10K
+      text: Revenues $ 51,217
+  notes: ""
+
+- id: own-028
+  type: computation
+  question: What was Nike's gross margin in fiscal 2019?
+  answer: 44.7% (gross profit $17,474 million / revenues $39,117 million)
+  answer_kind: number
+  answer_value: 44.7
+  filings: [NIKE_2019_10K]
+  evidence:
+    - doc_name: NIKE_2019_10K
+      text: Gross profit 17,474
+    - doc_name: NIKE_2019_10K
+      text: Revenues $ 39,117
+  notes: ""
+
+- id: own-029
+  type: computation
+  question: By what percentage did Coca-Cola's net operating revenues grow in 2022?
+  answer: 11.3% ($43,004 million vs $38,655 million in 2021)
+  answer_kind: number
+  answer_value: 11.3
+  filings: [COCACOLA_2022_10K]
+  evidence:
+    - doc_name: COCACOLA_2022_10K
+      text: Net operating revenues were $43,004 million in 2022, compared to $38,655 million in 2021
+  notes: The filing rounds it to 11 percent
+
+- id: own-030
+  type: computation
+  question: What was PepsiCo's operating margin in 2022?
+  answer: 13.3% (operating profit $11,512 million / net revenue $86,392 million)
+  answer_kind: number
+  answer_value: 13.3
+  filings: [PEPSICO_2022_10K]
+  evidence:
+    - doc_name: PEPSICO_2022_10K
+      text: Operating profit $ 11,512
+    - doc_name: PEPSICO_2022_10K
+      text: Net Revenue $ 86,392
+  notes: The filing also states 13.3%
+
+- id: own-031
+  type: computation
+  question: What was Lockheed Martin's net earnings margin in 2022?
+  answer: 8.7% (net earnings $5,732 million / net sales $65,984 million)
+  answer_kind: number
+  answer_value: 8.7
+  filings: [LOCKHEEDMARTIN_2022_10K]
+  evidence:
+    - doc_name: LOCKHEEDMARTIN_2022_10K
+      text: Net earnings $ 5,732
+    - doc_name: LOCKHEEDMARTIN_2022_10K
+      text: Net sales $ 65,984
+  notes: ""
+
+- id: own-032
+  type: computation
+  question: What was Lockheed Martin's gross margin in 2022?
+  answer: 12.6% (gross profit $8,287 million / net sales $65,984 million)
+  answer_kind: number
+  answer_value: 12.6
+  filings: [LOCKHEEDMARTIN_2022_10K]
+  evidence:
+    - doc_name: LOCKHEEDMARTIN_2022_10K
+      text: Net sales $ 65,984 $ 67,044 $ 65,398 Cost of sales (57,697) (57,983) (56,744) Gross profit 8,287
+  notes: ""
+
+- id: own-033
+  type: computation
+  question: What was AMD's research and development expense as a percentage of net revenue in 2022?
+  answer: 21.2% ($5,005 million / $23,601 million)
+  answer_kind: number
+  answer_value: 21.2
+  filings: [AMD_2022_10K]
+  evidence:
+    - doc_name: AMD_2022_10K
+      text: Research and development 5,005
+    - doc_name: AMD_2022_10K
+      text: Net revenue $ 23,601
+  notes: ""
+
+- id: own-034
+  type: computation
+  question: What was Walmart's current ratio at the end of fiscal 2020?
+  answer: 0.79 (current assets $61,806 million / current liabilities $77,790 million)
+  answer_kind: number
+  answer_value: 0.79
+  filings: [WALMART_2020_10K]
+  evidence:
+    - doc_name: WALMART_2020_10K
+      text: Total current assets 61,806
+    - doc_name: WALMART_2020_10K
+      text: Total current liabilities 77,790
+  notes: Balance sheet as of January 31, 2020
+
+- id: own-035
+  type: computation
+  question: What was Best Buy's gross profit as a percentage of revenue in fiscal 2023?
+  answer: 21.4% (gross profit $9,912 million / revenue $46,298 million)
+  answer_kind: number
+  answer_value: 21.4
+  filings: [BESTBUY_2023_10K]
+  evidence:
+    - doc_name: BESTBUY_2023_10K
+      text: Gross profit $ 9,912
+    - doc_name: BESTBUY_2023_10K
+      text: Revenue $ 46,298
+  notes: The filing also states 21.4%
+
+- id: own-036
+  type: computation
+  question: What was Pfizer's net income attributable to common shareholders as a percentage of revenues in 2021?
+  answer: 27.0% ($21,979 million / $81,288 million)
+  answer_kind: number
+  answer_value: 27.0
+  filings: [PFIZER_2021_10K]
+  evidence:
+    - doc_name: PFIZER_2021_10K
+      text: Net income attributable to Pfizer Inc. common shareholders $ 21,979
+    - doc_name: PFIZER_2021_10K
+      text: Revenues $ 81,288
+  notes: ""
+
+- id: own-037
+  type: computation
+  question: What share of Costco's total revenue came from membership fees in fiscal 2021?
+  answer: 2.0% ($3,877 million / $195,929 million)
+  answer_kind: number
+  answer_value: 2.0
+  filings: [COSTCO_2021_10K]
+  evidence:
+    - doc_name: COSTCO_2021_10K
+      text: Membership fees $ 3,877
+    - doc_name: COSTCO_2021_10K
+      text: Total revenue 195,929
+  notes: ""
+
+- id: own-038
+  type: computation
+  question: What share of Adobe's total revenue came from subscriptions in fiscal 2022?
+  answer: 93.1% ($16,388 million / $17,606 million)
+  answer_kind: number
+  answer_value: 93.1
+  filings: [ADOBE_2022_10K]
+  evidence:
+    - doc_name: ADOBE_2022_10K
+      text: Subscription $ 16,388
+    - doc_name: ADOBE_2022_10K
+      text: Total revenue $ 17,606
+  notes: ""
+
+- id: own-039
+  type: computation
+  question: What was PayPal's free cash flow in 2022, defined as operating cash flow minus purchases of property and equipment?
+  answer: $5,107 million ($5,813 million - $706 million)
+  answer_kind: number
+  answer_value: 5107
+  filings: [PAYPAL_2022_10K]
+  evidence:
+    - doc_name: PAYPAL_2022_10K
+      text: Net cash provided by operating activities 5,813
+    - doc_name: PAYPAL_2022_10K
+      text: Purchases of property and equipment (706)
+  notes: ""
+
+- id: own-040
+  type: computation
+  question: What was Apple's net income as a percentage of total net sales in fiscal 2025?
+  answer: 26.9% (net income $112,010 million / net sales $416,161 million)
+  answer_kind: number
+  answer_value: 26.9
+  filings: [APPLE_2025_10K]
+  evidence:
+    - doc_name: APPLE_2025_10K
+      text: Net income $ 112,010
+    - doc_name: APPLE_2025_10K
+      text: Total net sales $ 416,161
+  notes: ""
+
+- id: own-041
+  type: computation
+  question: What was Corning's gross margin as a percentage of net sales in 2022?
+  answer: 31.8% (gross margin $4,506 million / net sales $14,189 million)
+  answer_kind: number
+  answer_value: 31.8
+  filings: [CORNING_2022_10K]
+  evidence:
+    - doc_name: CORNING_2022_10K
+      text: Gross margin $ 4,506
+    - doc_name: CORNING_2022_10K
+      text: Net sales $ 14,189
+  notes: ""
+
+- id: own-042
+  type: computation
+  question: What were 3M's research, development and related expenses as a percentage of net sales in 2022?
+  answer: 5.4% ($1,862 million / $34,229 million)
+  answer_kind: number
+  answer_value: 5.4
+  filings: [3M_2022_10K]
+  evidence:
+    - doc_name: 3M_2022_10K
+      text: Research, development and related expenses 1,862
+    - doc_name: 3M_2022_10K
+      text: Net sales $ 34,229
+  notes: The filing also states 5.4%
+
+- id: own-043
+  type: computation
+  question: By what percentage did American Water Works' operating revenues change in 2022 compared with 2021?
+  answer: A decrease of 3.5% ($3,792 million vs $3,930 million)
+  answer_kind: number
+  answer_value: -3.5
+  filings: [AMERICANWATERWORKS_2022_10K]
+  evidence:
+    - doc_name: AMERICANWATERWORKS_2022_10K
+      text: Operating revenues $ 3,792 $ 3,930
+  notes: ""
+
+# ---------------------------------------------------------------- multi_hop: facts from two filings or two companies
+
+- id: own-044
+  type: multi_hop
+  question: Which had higher revenue in 2022, PepsiCo or Coca-Cola, and by how much?
+  answer: PepsiCo, by $43,388 million ($86,392 million vs $43,004 million)
+  answer_kind: number
+  answer_value: 43388
+  filings: [PEPSICO_2022_10K, COCACOLA_2022_10K]
+  evidence:
+    - doc_name: PEPSICO_2022_10K
+      text: Net Revenue $ 86,392
+    - doc_name: COCACOLA_2022_10K
+      text: Net operating revenues were $43,004 million in 2022
+  notes: ""
+
+- id: own-045
+  type: multi_hop
+  question: Which company had the higher operating margin in 2022, Coca-Cola or PepsiCo?
+  answer: Coca-Cola, 25.4% ($10,909 million / $43,004 million) vs PepsiCo 13.3% ($11,512 million / $86,392 million)
+  answer_kind: text
+  filings: [COCACOLA_2022_10K, PEPSICO_2022_10K]
+  evidence:
+    - doc_name: COCACOLA_2022_10K
+      text: Operating income was $10,909 million in 2022
+    - doc_name: COCACOLA_2022_10K
+      text: Net operating revenues were $43,004 million in 2022
+    - doc_name: PEPSICO_2022_10K
+      text: Operating profit $ 11,512
+    - doc_name: PEPSICO_2022_10K
+      text: Net Revenue $ 86,392
+  notes: ""
+
+- id: own-046
+  type: multi_hop
+  question: How much did Apple's total net sales grow from fiscal 2023 to fiscal 2025, in percent?
+  answer: 8.6% ($383,285 million to $416,161 million)
+  answer_kind: number
+  answer_value: 8.6
+  filings: [APPLE_2023_10K, APPLE_2025_10K]
+  evidence:
+    - doc_name: APPLE_2023_10K
+      text: Total net sales $ 383,285
+    - doc_name: APPLE_2025_10K
+      text: Total net sales $ 416,161
+  notes: ""
+
+- id: own-047
+  type: multi_hop
+  question: How did Lockheed Martin's net sales change from 2020 to 2022?
+  answer: Up $586 million, from $65,398 million to $65,984 million (about 0.9%)
+  answer_kind: number
+  answer_value: 586
+  filings: [LOCKHEEDMARTIN_2020_10K, LOCKHEEDMARTIN_2022_10K]
+  evidence:
+    - doc_name: LOCKHEEDMARTIN_2020_10K
+      text: Net sales $ 65,398
+    - doc_name: LOCKHEEDMARTIN_2022_10K
+      text: Net sales $ 65,984
+  notes: ""
+
+- id: own-048
+  type: multi_hop
+  question: By what percentage did Walmart's total revenues grow from fiscal 2018 to fiscal 2020?
+  answer: 4.7% ($500,343 million to $523,964 million)
+  answer_kind: number
+  answer_value: 4.7
+  filings: [WALMART_2018_10K, WALMART_2020_10K]
+  evidence:
+    - doc_name: WALMART_2018_10K
+      text: Total revenues $ 500,343
+    - doc_name: WALMART_2020_10K
+      text: Total revenues $ 523,964
+  notes: ""
+
+- id: own-049
+  type: multi_hop
+  question: How many times larger was Adobe's total revenue in fiscal 2022 than in fiscal 2015?
+  answer: About 3.7 times ($17,606 million vs $4,795.5 million)
+  answer_kind: number
+  answer_value: 3.7
+  filings: [ADOBE_2015_10K, ADOBE_2022_10K]
+  evidence:
+    - doc_name: ADOBE_2015_10K
+      text: Total revenue $ 4,795.5
+    - doc_name: ADOBE_2022_10K
+      text: Total revenue $ 17,606
+  notes: The 2015 income statement is in thousands (4,795,511); MD&A uses millions
+- id: own-050
+  type: multi_hop
+  question: Which had higher revenue in 2022, Boeing or Lockheed Martin, and by how much?
+  answer: Boeing, by $624 million ($66,608 million vs $65,984 million)
+  answer_kind: number
+  answer_value: 624
+  filings: [BOEING_2022_10K, LOCKHEEDMARTIN_2022_10K]
+  evidence:
+    - doc_name: BOEING_2022_10K
+      text: Total revenues 66,608
+    - doc_name: LOCKHEEDMARTIN_2022_10K
+      text: Net sales $ 65,984
+  notes: ""
+
+- id: own-051
+  type: multi_hop
+  question: How much did AMD's research and development expense increase from 2015 to 2022?
+  answer: By $4,058 million, from $947 million to $5,005 million (about 5.3 times)
+  answer_kind: number
+  answer_value: 4058
+  filings: [AMD_2015_10K, AMD_2022_10K]
+  evidence:
+    - doc_name: AMD_2015_10K
+      text: Research and development 947
+    - doc_name: AMD_2022_10K
+      text: Research and development 5,005
+  notes: ""
+
+- id: own-052
+  type: multi_hop
+  question: By what percentage did Nike's revenues grow from fiscal 2019 to fiscal 2023?
+  answer: 30.9% ($39,117 million to $51,217 million)
+  answer_kind: number
+  answer_value: 30.9
+  filings: [NIKE_2019_10K, NIKE_2023_10K]
+  evidence:
+    - doc_name: NIKE_2019_10K
+      text: Revenues $ 39,117
+    - doc_name: NIKE_2023_10K
+      text: Revenues $ 51,217
+  notes: ""
+
+- id: own-053
+  type: multi_hop
+  question: How much higher was JPMorgan Chase's net income than American Express's in 2022?
+  answer: $30,162 million higher ($37,676 million vs $7,514 million)
+  answer_kind: number
+  answer_value: 30162
+  filings: [JPMORGAN_2022_10K, AMERICANEXPRESS_2022_10K]
+  evidence:
+    - doc_name: JPMORGAN_2022_10K
+      text: Net income $ 37,676
+    - doc_name: AMERICANEXPRESS_2022_10K
+      text: Net income $ 7,514
+  notes: ""
+
+- id: own-054
+  type: multi_hop
+  question: By what percentage did Netflix's revenues grow from 2015 to 2017?
+  answer: 72.5% ($6,779,511 thousand to $11,692,713 thousand)
+  answer_kind: number
+  answer_value: 72.5
+  filings: [NETFLIX_2015_10K, NETFLIX_2017_10K]
+  evidence:
+    - doc_name: NETFLIX_2015_10K
+      text: Revenues $ 6,779,511
+    - doc_name: NETFLIX_2017_10K
+      text: Revenues $ 11,692,713
+  notes: ""
+
+- id: own-055
+  type: multi_hop
+  question: How many times larger was Microsoft's total revenue in fiscal 2023 than in fiscal 2016?
+  answer: About 2.5 times ($211,915 million vs $85,320 million)
+  answer_kind: number
+  answer_value: 2.5
+  filings: [MICROSOFT_2016_10K, MICROSOFT_2023_10K]
+  evidence:
+    - doc_name: MICROSOFT_2016_10K
+      text: Total revenue 85,320
+    - doc_name: MICROSOFT_2023_10K
+      text: Total revenue 211,915
+  notes: ""
+
+- id: own-056
+  type: multi_hop
+  question: By what percentage did CVS Health's total revenues grow from 2018 to 2022?
+  answer: 65.7% ($194,579 million to $322,467 million)
+  answer_kind: number
+  answer_value: 65.7
+  filings: [CVSHEALTH_2018_10K, CVSHEALTH_2022_10K]
+  evidence:
+    - doc_name: CVSHEALTH_2018_10K
+      text: Total revenues 194,579
+    - doc_name: CVSHEALTH_2022_10K
+      text: Total revenues 322,467
+  notes: The 2018 figures are in Exhibit 13 (annual report incorporated by reference)
+
+- id: own-057
+  type: multi_hop
+  question: Which had higher net sales in 2022, 3M or Corning, and by how much?
+  answer: 3M, by $20,040 million ($34,229 million vs $14,189 million)
+  answer_kind: number
+  answer_value: 20040
+  filings: [3M_2022_10K, CORNING_2022_10K]
+  evidence:
+    - doc_name: 3M_2022_10K
+      text: Net sales $ 34,229
+    - doc_name: CORNING_2022_10K
+      text: Net sales $ 14,189
+  notes: ""
+
+# ---------------------------------------------------------------- text: facts stated in prose
+
+- id: own-058
+  type: text
+  question: Approximately how many full-time employees did Microsoft have as of June 30, 2023?
+  answer: About 221,000 (120,000 in the U.S. and 101,000 internationally)
+  answer_kind: number
+  answer_value: 221000
+  filings: [MICROSOFT_2023_10K]
+  evidence:
+    - doc_name: MICROSOFT_2023_10K
+      text: As of June 30, 2023, we employed approximately 221,000 people on a full-time basis, 120,000 in the U.S. and 101,000 internationally.
+  notes: ""
+
+- id: own-059
+  type: text
+  question: Approximately how many employees did Nike have as of May 31, 2023?
+  answer: About 83,700, including retail and part-time employees
+  answer_kind: number
+  answer_value: 83700
+  filings: [NIKE_2023_10K]
+  evidence:
+    - doc_name: NIKE_2023_10K
+      text: As of May 31, 2023, we had approximately 83,700 employees worldwide, including retail and part-time employees.
+  notes: ""
+
+- id: own-060
+  type: text
+  question: Approximately how many employees did Johnson & Johnson report in its fiscal 2022 10-K?
+  answer: About 152,700 worldwide
+  answer_kind: number
+  answer_value: 152700
+  filings: [JOHNSON_JOHNSON_2022_10K]
+  evidence:
+    - doc_name: JOHNSON_JOHNSON_2022_10K
+      text: Johnson & Johnson and its subsidiaries (the Company) have approximately 152,700 employees worldwide
+  notes: ""
+
+- id: own-061
+  type: text
+  question: What were Boeing's reportable segments in 2022?
+  answer: Commercial Airplanes (BCA); Defense, Space & Security (BDS); Global Services (BGS); and Boeing Capital (BCC)
+  answer_kind: text
+  filings: [BOEING_2022_10K]
+  evidence:
+    - doc_name: BOEING_2022_10K
+      text: We operate in four reportable segments
+    - doc_name: BOEING_2022_10K
+      text: Commercial Airplanes (BCA); Defense, Space & Security (BDS); Global Services (BGS); Boeing Capital (BCC).
+  notes: ""
+
+- id: own-062
+  type: text
+  question: Into which segments did Amazon organize its operations in 2019?
+  answer: North America, International, and Amazon Web Services (AWS)
+  answer_kind: text
+  filings: [AMAZON_2019_10K]
+  evidence:
+    - doc_name: AMAZON_2019_10K
+      text: We have organized our operations into three segments, North America, International, and Amazon Web Services
+  notes: ""
+
+- id: own-063
+  type: text
+  question: What were Walmart's reportable segments in fiscal 2020?
+  answer: Walmart U.S., Walmart International and Sam's Club
+  answer_kind: text
+  filings: [WALMART_2020_10K]
+  evidence:
+    - doc_name: WALMART_2020_10K
+      text: Our operations comprise three reportable segments, Walmart U.S., Walmart International and Sam's Club.
+  notes: ""
+
+- id: own-064
+  type: text
+  question: What segments did Microsoft use to report its financial performance in fiscal 2023?
+  answer: Productivity and Business Processes, Intelligent Cloud, and More Personal Computing
+  answer_kind: text
+  filings: [MICROSOFT_2023_10K]
+  evidence:
+    - doc_name: MICROSOFT_2023_10K
+      text: We operate our business and report our financial performance using three segments, Productivity and Business Processes, Intelligent Cloud, and More Personal Computing.
+  notes: ""
+
+- id: own-065
+  type: text
+  question: What were Verizon's reportable segments in 2022?
+  answer: Verizon Consumer Group (Consumer) and Verizon Business Group (Business)
+  answer_kind: text
+  filings: [VERIZON_2022_10K]
+  evidence:
+    - doc_name: VERIZON_2022_10K
+      text: We have two reportable segments that we operate and manage as strategic business units - Verizon Consumer Group (Consumer) and Verizon Business Group (Business).
+  notes: ""
+
+- id: own-066
+  type: text
+  question: How many major reportable business segments did JPMorgan Chase have in 2022?
+  answer: Four, plus a Corporate segment
+  answer_kind: number
+  answer_value: 4
+  filings: [JPMORGAN_2022_10K]
+  evidence:
+    - doc_name: JPMORGAN_2022_10K
+      text: activities are organized into four major reportable business segments, as well as a Corporate segment
+  notes: Consumer & Community Banking, Corporate & Investment Bank, Commercial Banking, Asset & Wealth Management
+
+- id: own-067
+  type: text
+  question: Which firm audited Apple's fiscal 2024 financial statements, and since when?
+  answer: Ernst & Young LLP, Apple's auditor since 2009
+  answer_kind: text
+  filings: [APPLE_2024_10K]
+  evidence:
+    - doc_name: APPLE_2024_10K
+      text: /s/ Ernst & Young LLP We have served as the Company's auditor since 2009.
+  notes: ""
+
+- id: own-068
+  type: text
+  question: Since what year has Ernst & Young served as Coca-Cola's auditor, according to its 2022 10-K?
+  answer: Since 1921
+  answer_kind: number
+  answer_value: 1921
+  filings: [COCACOLA_2022_10K]
+  evidence:
+    - doc_name: COCACOLA_2022_10K
+      text: We have served as the Company's auditor since 1921.
+  notes: ""
+
+- id: own-069
+  type: text
+  question: How many warehouses did Costco operate outside the U.S. at the end of fiscal 2021?
+  answer: "251"
+  answer_kind: number
+  answer_value: 251
+  filings: [COSTCO_2021_10K]
+  evidence:
+    - doc_name: COSTCO_2021_10K
+      text: At the end of 2021, we operated 251 warehouses outside of the U.S.
+  notes: Item 1A Risk Factors
+
+- id: own-070
+  type: text
+  question: Did Coca-Cola's net operating revenues increase in 2022?
+  answer: Yes, by $4,349 million or 11 percent, to $43,004 million
+  answer_kind: yes_no
+  filings: [COCACOLA_2022_10K]
+  evidence:
+    - doc_name: COCACOLA_2022_10K
+      text: Net operating revenues were $43,004 million in 2022, compared to $38,655 million in 2021, an increase of $4,349 million, or 11 percent.
+  notes: ""
+
+- id: own-071
+  type: text
+  question: Did Apple's total net sales decline in fiscal 2023?
+  answer: Yes, by 3%, to $383,285 million from $394,328 million in fiscal 2022
+  answer_kind: yes_no
+  filings: [APPLE_2023_10K]
+  evidence:
+    - doc_name: APPLE_2023_10K
+      text: Total net sales $ 383,285 (3) % $ 394,328
+  notes: ""
+
+# ---------------------------------------------------------------- unanswerable: the correct behavior is to refuse
+# Each must stay unanswerable for the whole system: not in any corpus filing, and not in 10-K/10-Q XBRL facts.
+
+- id: own-072
+  type: unanswerable
+  question: What will Nike's revenue be in fiscal 2030?
+  answer: Forecast; filings report past results and contain no fiscal 2030 revenue
+  answer_kind: refuse
+  filings: []
+  evidence: []
+  notes: Forecast
+
+- id: own-073
+  type: unanswerable
+  question: What will Microsoft's operating income be in fiscal 2030?
+  answer: Forecast; not in any filing
+  answer_kind: refuse
+  filings: []
+  evidence: []
+  notes: Forecast
+
+- id: own-074
+  type: unanswerable
+  question: How many airplanes will Boeing deliver in 2035?
+  answer: Forecast; not in any filing
+  answer_kind: refuse
+  filings: []
+  evidence: []
+  notes: Forecast
+
+- id: own-075
+  type: unanswerable
+  question: What will Coca-Cola's dividend per share be in 2031?
+  answer: Forecast; not in any filing
+  answer_kind: refuse
+  filings: []
+  evidence: []
+  notes: Forecast
+
+- id: own-076
+  type: unanswerable
+  question: What will Apple's iPhone net sales be in fiscal 2030?
+  answer: Forecast; not in any filing
+  answer_kind: refuse
+  filings: []
+  evidence: []
+  notes: Forecast
+
+- id: own-077
+  type: unanswerable
+  question: What will Walmart's total revenues be in fiscal 2030?
+  answer: Forecast; not in any filing
+  answer_kind: refuse
+  filings: []
+  evidence: []
+  notes: Forecast
+
+- id: own-078
+  type: unanswerable
+  question: What will AMD's net revenue be in 2030?
+  answer: Forecast; not in any filing
+  answer_kind: refuse
+  filings: []
+  evidence: []
+  notes: Forecast
+
+- id: own-079
+  type: unanswerable
+  question: What was PepsiCo's CEO's total compensation in 2022?
+  answer: Not in the 10-K; Item 11 refers to PepsiCo's 2023 proxy statement
+  answer_kind: refuse
+  filings: [PEPSICO_2022_10K]
+  evidence: []
+  notes: Proxy item; PepsiCo has no executive pay facts in XBRL either
+
+- id: own-080
+  type: unanswerable
+  question: How much was Coca-Cola's CEO paid in 2022?
+  answer: Not in the 10-K; Item 11 refers to the proxy statement
+  answer_kind: refuse
+  filings: [COCACOLA_2022_10K]
+  evidence: []
+  notes: Proxy item; no executive pay facts in XBRL
+
+- id: own-081
+  type: unanswerable
+  question: What was Verizon's CEO's total compensation in 2022?
+  answer: Not in the 10-K; Item 11 refers to the proxy statement
+  answer_kind: refuse
+  filings: [VERIZON_2022_10K]
+  evidence: []
+  notes: Proxy item; no executive pay facts in XBRL
+
+- id: own-082
+  type: unanswerable
+  question: How much did Boeing pay its independent auditor in fees for 2022?
+  answer: Not in the 10-K; Item 14 names the auditor (Deloitte & Touche LLP) but refers to the 2023 proxy statement for fees
+  answer_kind: refuse
+  filings: [BOEING_2022_10K]
+  evidence: []
+  notes: Proxy item. A correct answer may name the auditor, but must not invent fees
+
+- id: own-083
+  type: unanswerable
+  question: Who were the members of Lockheed Martin's board of directors as of 2022?
+  answer: Not in the 10-K; Item 10 refers to the proxy statement for directors
+  answer_kind: refuse
+  filings: [LOCKHEEDMARTIN_2022_10K]
+  evidence: []
+  notes: Proxy item. The 10-K lists executive officers, not directors
+
+- id: own-084
+  type: unanswerable
+  question: What was Tesla's gross margin in 2022?
+  answer: Tesla is not in the corpus
+  answer_kind: refuse
+  filings: []
+  evidence: []
+  notes: Company not in corpus
+
+- id: own-085
+  type: unanswerable
+  question: How much did Alphabet spend on research and development in 2023?
+  answer: Alphabet is not in the corpus
+  answer_kind: refuse
+  filings: []
+  evidence: []
+  notes: Company not in corpus
+
+- id: own-086
+  type: unanswerable
+  question: How many employees did Meta Platforms have at the end of 2022?
+  answer: Meta is not in the corpus
+  answer_kind: refuse
+  filings: []
+  evidence: []
+  notes: Company not in corpus
+
+- id: own-087
+  type: unanswerable
+  question: What was Nvidia's data center revenue in fiscal 2024?
+  answer: Nvidia is not in the corpus
+  answer_kind: refuse
+  filings: []
+  evidence: []
+  notes: Company not in corpus
+
+- id: own-088
+  type: unanswerable
+  question: What were Intel's capital expenditures in 2021?
+  answer: Intel is not in the corpus
+  answer_kind: refuse
+  filings: []
+  evidence: []
+  notes: Company not in corpus
+
+- id: own-089
+  type: unanswerable
+  question: How many stores did Starbucks operate at the end of fiscal 2022?
+  answer: Starbucks is not in the corpus
+  answer_kind: refuse
+  filings: []
+  evidence: []
+  notes: Company not in corpus
+
+- id: own-090
+  type: unanswerable
+  question: How many iPhones did Apple sell in fiscal 2024?
+  answer: Apple does not disclose unit sales; the 10-K reports iPhone net sales only
+  answer_kind: refuse
+  filings: [APPLE_2024_10K]
+  evidence: []
+  notes: Never disclosed. A correct answer may give iPhone net sales instead, but must not invent units
+
+- id: own-091
+  type: unanswerable
+  question: How many Amazon Prime members did Amazon have at the end of 2019?
+  answer: Not disclosed in the 2019 10-K
+  answer_kind: refuse
+  filings: [AMAZON_2019_10K]
+  evidence: []
+  notes: Never disclosed in the 10-K (shareholder letters are not in the corpus)
+
+- id: own-092
+  type: unanswerable
+  question: How many Xbox consoles did Microsoft sell in fiscal 2023?
+  answer: Not disclosed in the 10-K
+  answer_kind: refuse
+  filings: [MICROSOFT_2023_10K]
+  evidence: []
+  notes: Never disclosed. The 10-K only says Xbox hardware revenue fell on "lower volume and price of consoles sold", with no unit count
+
+- id: own-093
+  type: unanswerable
+  question: Should I buy PepsiCo stock?
+  answer: Investment advice is out of scope
+  answer_kind: refuse
+  filings: []
+  evidence: []
+  notes: Investment advice (non-goal)
+
+- id: own-094
+  type: unanswerable
+  question: What is 3M's share price today?
+  answer: Real-time market data is out of scope
+  answer_kind: refuse
+  filings: []
+  evidence: []
+  notes: Real-time data (non-goal)
+
+- id: own-095
+  type: unanswerable
+  question: Is Boeing stock undervalued right now?
+  answer: Investment advice and current market data are out of scope
+  answer_kind: refuse
+  filings: []
+  evidence: []
+  notes: Investment advice (non-goal)
+
+- id: own-096
+  type: unanswerable
+  question: What will Nike's stock price be a year from now?
+  answer: Price forecasts are out of scope
+  answer_kind: refuse
+  filings: []
+  evidence: []
+  notes: Investment advice and forecast (non-goal)
+
+- id: own-097
+  type: unanswerable
+  question: What new risk factors did Coca-Cola add in its 2019 10-K?
+  answer: Coca-Cola's 2019 10-K is not in the corpus
+  answer_kind: refuse
+  filings: []
+  evidence: []
+  notes: Filing not in corpus; text questions cannot be answered from XBRL
+
+- id: own-098
+  type: unanswerable
+  question: How did Microsoft's fiscal 2020 10-K describe the impact of COVID-19 on its business?
+  answer: Microsoft's fiscal 2020 10-K is not in the corpus
+  answer_kind: refuse
+  filings: []
+  evidence: []
+  notes: Filing not in corpus (corpus has fiscal 2016 and 2023)
+
+- id: own-099
+  type: unanswerable
+  question: What supply chain risks did Apple describe in its fiscal 2020 10-K?
+  answer: Apple's fiscal 2020 10-K is not in the corpus
+  answer_kind: refuse
+  filings: []
+  evidence: []
+  notes: Filing not in corpus (corpus has fiscal 2023-2025). Tests whether the system answers from a different year
+
+- id: own-100
+  type: unanswerable
+  question: Which competitors did Netflix name in its 2016 10-K?
+  answer: Netflix's 2016 10-K is not in the corpus
+  answer_kind: refuse
+  filings: []
+  evidence: []
+  notes: Filing not in corpus (corpus has 2015 and 2017). Tests whether the system answers from a neighboring year

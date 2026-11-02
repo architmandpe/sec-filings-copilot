@@ -22,6 +22,15 @@ uv run python -m retrieval.search  # show the top chunks for sample questions
 uv run python -m agent.answer      # retrieve and answer sample questions with citations
 ```
 
+## Evaluation data
+
+| Set | Questions | Source of gold answers |
+|---|---|---|
+| FinanceBench (open-source subset, 10-K/10-Q only) | 127 of 150 (8-Ks and earnings releases excluded) | FinanceBench labels, with corrections from a 20-question audit (`evals/financebench_audit.csv`) |
+| Own (`evals/questions_own.yaml`) | 100: table 20, computation 20, multi-hop 15, text 15, unanswerable 30 | Quoted from the corpus filings; every derived answer recomputed; checked with `python -m evals.own` |
+
+FinanceBench has no unanswerable or multi-company questions, so the own set supplies them. Gold evidence is stored as text and matched to chunks at eval time (`evals/gold.py`), so labels survive re-chunking.
+
 ## What failed and why
 
 A running log of problems found, why they happened, and what was done about them.
