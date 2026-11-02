@@ -38,6 +38,20 @@ FinanceBench has no unanswerable or multi-company questions, so the own set supp
 | dev | 16 | 64 | 50 | 15 | 114 |
 | test | 16 | 63 | 50 | 15 | 113 |
 
+## Results
+
+Every eval run is appended to `evals/results.jsonl` (commit, clean/dirty, model revisions, config, metrics by source and type); per-question details go to `data/evals/runs/`.
+
+### Retrieval ablation (dev, 99 answerable questions)
+
+`python -m evals.retrieval --note "..."`. recall@k: share of a question's evidence pieces with a gold chunk in the top k, averaged over questions; MRR: 1 / rank of the first gold chunk (0 if not in the top 20).
+
+| Change | recall@1 | recall@5 | recall@10 | recall@20 | MRR | Run |
+|---|---|---|---|---|---|---|
+| Baseline: dense `bge-small-en-v1.5`, 400-token chunks, 50 overlap | 0.061 | 0.172 | 0.308 | 0.399 | 0.159 | `20261102-224225` |
+
+Baseline by type (recall@5): table 0.267 (n=15, but recall@1 = 0), text 0.156 (n=32), computation 0.136 (n=44), multi-hop 0.250 (n=8). The generator sees the evidence for only ~1 in 6 facts, so retrieval caps answer accuracy.
+
 ## What failed and why
 
 A running log of problems found, why they happened, and what was done about them.
