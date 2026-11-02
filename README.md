@@ -31,6 +31,13 @@ uv run python -m agent.answer      # retrieve and answer sample questions with c
 
 FinanceBench has no unanswerable or multi-company questions, so the own set supplies them. Gold evidence is stored as text and matched to chunks at eval time (`evals/gold.py`), so labels survive re-chunking.
 
+**Dev/test split** (`evals/split.json`, made by `python -m evals.split`, seed 2026): whole companies go to one side, so the two sides never share filing text. Companies linked by a multi-company question stay together, questions with no filing are assigned one at a time, and sides are balanced by (source, type). All tuning and error analysis use dev; test is scored once at the end. The file is committed and frozen: re-running keeps every existing assignment and only places new companies or questions, and fails if an existing question would change sides.
+
+| Split | Companies | FinanceBench | Own | Unanswerable | Total |
+|---|---|---|---|---|---|
+| dev | 16 | 64 | 50 | 15 | 114 |
+| test | 16 | 63 | 50 | 15 | 113 |
+
 ## What failed and why
 
 A running log of problems found, why they happened, and what was done about them.
@@ -73,6 +80,7 @@ A running log of problems found, why they happened, and what was done about them
 | A wrong J&J filing passed the "exactly one match" check | Uniqueness doesn't prove correctness; J&J's link had no accession to compare against | **Fixed** (rule above); found by reading the question evidence ("At January 1, 2023"). Lesson: only known answers test correctness |
 | CVS 2018 10-K is 0.9 MB (CVS 2022: 6.0 MB) | MD&A and financial statements are in Exhibit 13, incorporated by reference | **Fixed:** see Parsing |
 | Some FinanceBench gold answers are wrong (Pfizer Upjohn costs: 77.78 instead of ~70) or contradict their justification (American Water Works working capital, Adobe operating margin) | Human labeling errors | **Measured:** a random sample of 20 in-scope questions (seed 2026, stratified by question type; `evals/audit.py`, verdicts in `evals/financebench_audit.csv`) found 18 correct, 1 wrong (Pfizer), 1 ambiguous (PepsiCo: the question asks for the income statement, the answer comes from the cash flow statement). Estimated error rate 5% (10% counting ambiguous); with only 20 questions the 95% interval is roughly 1–24%. Decision rule fixed in advance (≤ ~10% → primary eval set with corrections) is met. Failures are still checked against the filing during error analysis |
+| A document-level dev/test split would leak | A company's 10-Ks repeat most of their text from year to year (risk factors, business description), so tuning on Apple 2023 and testing on Apple 2024 tests on near-duplicate text; Week 6 embedding fine-tuning on dev chunks would make it worse | **Avoided:** split by company instead (6 multi-company questions keep their companies together). Verified: 0 questions span both sides, and a second run changes nothing. Own table/text questions are slightly uneven (table 8 dev / 12 test, text 9 / 6) because companies move as units, so per-type scores are reported alongside the overall score |
 
 ### Chunking and retrieval
 
