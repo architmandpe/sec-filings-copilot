@@ -58,6 +58,21 @@ def get_submissions(cik: str) -> dict:
     return json.loads(raw)
 
 
+def filing_entry(cik: str, index: dict, i: int) -> dict:
+    """Build one filing's details from position i of a submissions index's parallel lists."""
+    accession = index["accessionNumber"][i]
+    document = index["primaryDocument"][i]
+    return {
+        "cik": cik,
+        "form": index["form"][i],
+        "accession": accession,
+        "filing_date": index["filingDate"][i],
+        "report_date": index["reportDate"][i],
+        "document": document,
+        "url": f"https://www.sec.gov/Archives/edgar/data/{int(cik)}/{accession.replace('-', '')}/{document}",
+    }
+
+
 def list_filings(cik: str, form: str = "10-K", limit: int = 3) -> list[dict]:
     """Return the most recent filings of one form type, newest first."""
     recent = get_submissions(cik)["filings"]["recent"]
@@ -65,20 +80,24 @@ def list_filings(cik: str, form: str = "10-K", limit: int = 3) -> list[dict]:
     for i, form_type in enumerate(recent["form"]):
         if form_type != form:
             continue
-        accession = recent["accessionNumber"][i]
-        document = recent["primaryDocument"][i]
-        filings.append({
-            "cik": cik,
-            "form": form_type,
-            "accession": accession,
-            "filing_date": recent["filingDate"][i],
-            "report_date": recent["reportDate"][i],
-            "document": document,
-            "url": f"https://www.sec.gov/Archives/edgar/data/{int(cik)}/{accession.replace('-', '')}/{document}",
-        })
+        filings.append(filing_entry(cik, recent, i))
         if len(filings) == limit:
             break
     return filings
+
+
+def find_filing(cik: str, accession: str, filed: str) -> dict:
+    """Return a filing's details, searching the older submissions pages when it isn't in the recent list."""
+    submissions = get_submissions(cik)
+    indexes = [submissions["filings"]["recent"]]
+    for page in submissions["filings"]["files"]:
+        if page["filingFrom"] <= filed <= page["filingTo"]:
+            raw = fetch_cached(f"https://data.sec.gov/submissions/{page['name']}", CACHE_DIR / cik / page["name"])
+            indexes.append(json.loads(raw))
+    for index in indexes:
+        if accession in index["accessionNumber"]:
+            return filing_entry(cik, index, index["accessionNumber"].index(accession))
+    raise ValueError(f"{accession} not found in the submissions index of CIK {cik}")
 
 
 def download_filing(filing: dict) -> Path:
