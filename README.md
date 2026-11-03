@@ -52,6 +52,8 @@ Every eval run is appended to `evals/results.jsonl` (commit, clean/dirty, model 
 
 Baseline by type (recall@5): table 0.267 (n=15, but recall@1 = 0), text 0.156 (n=32), computation 0.136 (n=44), multi-hop 0.250 (n=8). The generator sees the evidence for only ~1 in 6 facts, so retrieval caps answer accuracy.
 
+Where the baseline's misses come from (`python -m evals.misses`, 115 evidence pieces not in the top 5): 89 (77%) had the right filing in the top 5 but not the evidence chunk; 12 (10%) got only other filings of the right company; 14 (12%) got no chunk from the right company. Across all questions, 55% of top-5 slots go to the wrong filing (38% right company, other filing; 17% other company).
+
 ## What failed and why
 
 A running log of problems found, why they happened, and what was done about them.
@@ -102,6 +104,7 @@ A running log of problems found, why they happened, and what was done about them
 |---|---|---|
 | Chunk `fiscal_year` is taken from the calendar year of the fiscal year-end date | Simplification for the baseline; correct for Apple (September) and Microsoft (June) | **Open:** wrong for companies that name a fiscal year by its starting year (some retailers); use the filing's own fiscal year label when they are added |
 | Some chunks contain nothing but a page footer (e.g. Item 6 "[Reserved]" → `Apple Inc. \| 2024 Form 10-K \| 19`) | Footers remain in section text (see Parsing), and every non-empty section produces at least one chunk | **Open:** junk chunks can take retrieval slots; fix footers and/or drop very short chunks, and measure the effect in Week 3 |
+| Baseline recall@5 is 0.172; the assumed cause (retrieving the right company's other-year filings) was wrong | Measured with a miss breakdown: 77% of misses have the right filing in the top 5 but the wrong chunk of it. Dense embeddings match the question's concepts ("capital-intensive", "ROA") to prose that discusses them, not to the statement rows that contain the numbers | **Open (Week 3):** BM25 for exact terms, reranker for ranks 6–20, title-prefixed chunks; company/year filters for the 55% of top-5 slots taken by wrong filings (measure an oracle filter first as the upper bound). Lesson: measure the hypothesis before building the fix |
 | Retrieval scores cannot tell answerable questions from unanswerable ones (CEO pay: top score 0.750, supply chain: 0.754) | Dense search always returns the k nearest chunks, however unrelated | **By design:** refusal must come from the generator (and later a reranker score), not a similarity threshold |
 
 ### Answer generation
