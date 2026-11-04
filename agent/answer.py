@@ -33,15 +33,17 @@ class RAG:
         self.retriever = Retriever()
         self.model, self.tokenizer = load(GEN_MODEL)
 
-    def answer(self, question: str) -> tuple[str, list[dict]]:
-        """Retrieve evidence for the question and generate a cited answer; return the answer and the chunks used."""
+    def answer(self, question: str, verbose: bool = True) -> tuple[str, list[dict]]:
+        """Retrieve evidence for the question and generate a cited answer; return the answer and the chunks used.
+
+        verbose streams the answer and prints speed stats (on for the demo, off for evals)."""
         chunks = self.retriever.search(question, k=TOP_K)
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": f"Excerpts:\n\n{format_context(chunks)}\n\nQuestion: {question}"},
         ]
         prompt = self.tokenizer.apply_chat_template(messages, add_generation_prompt=True, enable_thinking=False)
-        text = generate(self.model, self.tokenizer, prompt=prompt, max_tokens=MAX_TOKENS, verbose=True)
+        text = generate(self.model, self.tokenizer, prompt=prompt, max_tokens=MAX_TOKENS, verbose=verbose)
         return text, chunks
 
 

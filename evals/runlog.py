@@ -5,7 +5,7 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
-from huggingface_hub import snapshot_download
+from huggingface_hub import try_to_load_from_cache
 
 RESULTS_PATH = Path("evals/results.jsonl")  # committed: one line per run, the project's history of scores
 RUNS_DIR = Path("data/evals/runs")  # per-question details for error analysis (rebuildable, gitignored)
@@ -20,18 +20,21 @@ def git_state() -> dict:
 
 
 def model_revision(repo_id: str) -> str:
-    """The Hugging Face commit hash of the locally cached model (the name of its snapshot folder)."""
-    return Path(snapshot_download(repo_id, local_files_only=True)).name
+    """The Hugging Face commit hash of the locally cached model (the name of its snapshot folder).
+
+    Looks up one file (config.json) rather than the whole snapshot, which mlx-lm downloads only partly."""
+    return Path(try_to_load_from_cache(repo_id, "config.json")).parent.name
 
 
 def new_run_id(stage: str) -> str:
     return f"{datetime.now():%Y%m%d-%H%M%S}-{stage}"
 
 
-def save_run(run: dict, details: list[dict]) -> None:
-    """Append the run summary to the results log and write the per-question details."""
-    with open(RESULTS_PATH, "a") as f:
-        f.write(json.dumps(run) + "\n")
+def save_run(run: dict, details: list[dict], log: bool = True) -> None:
+    """Append the run summary to the results log (unless log is False) and write the per-question details."""
+    if log:
+        with open(RESULTS_PATH, "a") as f:
+            f.write(json.dumps(run) + "\n")
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
     with open(RUNS_DIR / f"{run['run_id']}.jsonl", "w") as f:
         for row in details:

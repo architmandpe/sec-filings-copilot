@@ -33,6 +33,12 @@ def score(gold: list[set[str]], retrieved: list[str]) -> dict:
     return row
 
 
+def retrieval_config(n_chunks: int) -> dict:
+    """The retrieval settings a run depends on (shared with the answer eval)."""
+    return {"embed_model": EMBED_MODEL, "embed_revision": model_revision(EMBED_MODEL),
+            "chunk_tokens": CHUNK_TOKENS, "overlap_tokens": OVERLAP_TOKENS, "n_chunks": n_chunks}
+
+
 def average(rows: list[dict]) -> dict:
     return {"n": len(rows)} | {m: round(sum(r[m] for r in rows) / len(rows), 3) for m in METRICS}
 
@@ -67,8 +73,7 @@ if __name__ == "__main__":
 
     run = {
         "run_id": new_run_id("retrieval"), "stage": "retrieval", "split": args.split, "note": args.note, **git_state(),
-        "config": {"embed_model": EMBED_MODEL, "embed_revision": model_revision(EMBED_MODEL),
-                   "chunk_tokens": CHUNK_TOKENS, "overlap_tokens": OVERLAP_TOKENS, "n_chunks": len(retriever.chunks)},
+        "config": retrieval_config(len(retriever.chunks)),
         "metrics": metrics,
     }
     save_run(run, details)
