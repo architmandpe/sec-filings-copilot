@@ -3,7 +3,31 @@
 A fully local, open-source question-answering and analysis system over SEC 10-K and 10-Q filings.
 Answers questions with cited evidence, computes financial metrics, and refuses when evidence is missing.
 
-**Status:** Week 1: thin end-to-end baseline complete (dense retrieval → cited answer from a local LLM).
+**Status:** Week 2: evaluation harness built and baseline measured (retrieval and answers). Week 3 (retrieval improvements) is next.
+
+## At a glance
+
+| | |
+|---|---|
+| Corpus | 75 SEC filings (10-K, 10-Q, one Exhibit 13) from 32 companies, 19,729 chunks; 894,619 XBRL facts in DuckDB |
+| Eval set | 227 questions: 127 FinanceBench (audited) + 100 own (5 types, 30 unanswerable); company-level dev/test split, 114 / 113 |
+| Models | Embeddings `BAAI/bge-small-en-v1.5`; generator `mlx-community/Qwen3-8B-4bit` on an M4 MacBook Air (24 GB), thinking off |
+| Cost | $0: everything runs locally with open-source models |
+| Baseline (dev) | retrieval recall@5 0.172, MRR 0.159; answer accuracy 0.243 (0.75 when the evidence was retrieved); refusal recall 1.0; citation validity 1.0 |
+
+## Key findings
+
+The main results so far, with the numbers behind them. Details are in [Results](#results) and [What failed and why](#what-failed-and-why).
+
+1. **Retrieval, not the LLM, is the bottleneck.** For 88 of 99 answerable dev questions the evidence was not in the 5 chunks given to the LLM (recall@5 = 0.172). When it was, the LLM answered 6 of 8 scored questions correctly (0.75); when it was not, 0.18. 56 of 58 false refusals happened because retrieval missed the evidence, so the model was right to refuse.
+2. **The obvious explanation for retrieval misses was wrong, and measuring showed it.** Expected cause: the right company's filing from the wrong year. A miss breakdown showed only 10% of misses are wrong-year; 77% have the right filing in the top 5 but the wrong chunk of it. Dense embeddings rank prose that *discusses* a concept ("capital-intensive") above the statement rows that *contain* the numbers. Table evidence is never ranked first (recall@1 = 0) but is often in the top 20 (0.60). This reorders the Week 3 plan: within-filing ranking (BM25, reranker, chunk titles) before year filters.
+3. **Raising k does not fix it.** 60% of evidence ranks below position 20 of 19,729 chunks; k = 20 would raise recall only from 0.17 to 0.40 at 4× the prompt length.
+4. **Generator behavior is trustworthy.** 100% of cited chunk IDs were actually retrieved (no invented citations), 98% of answers cite a source, and all 15 unanswerable dev questions were refused. Refusal recall must be rechecked once retrieval improves (today the model refuses 64% of all questions).
+5. **Benchmark labels were audited before being trusted.** A stratified random sample of 20 FinanceBench answers checked against the filings: 18 correct, 1 wrong, 1 ambiguous (5–10% error, 95% interval ~1–24%). The decision rule (≤ ~10% → use as primary set, with corrections) was fixed before the audit.
+6. **The dev/test split is by company, not by document.** A company's 10-Ks repeat most text year to year, so a document-level split would leak near-duplicate text from dev into test (and into Week 6 embedding fine-tuning). Verified: 0 questions span both sides; the split file is frozen in git.
+7. **The gold labels are a lower bound.** 12 answers were correct although the labeled evidence chunk was not retrieved: the same number also appears in next year's 10-K (comparison column) or elsewhere in the same filing. True retrieval quality is somewhat higher than recall@k shows.
+8. **SEC data has traps that silently produce wrong numbers.** XBRL `fy` is the filing's fiscal year, not the period's (each 10-K repeats 2 prior years); concept names change (revenue after ASC 606); "latest filing wins" returns restated values (J&J FY2022 revenue $94.9B as filed vs $80.0B restated); "fiscal 2023" means different calendar periods at Ulta, Best Buy and J&J. Each was fixed and verified against EDGAR (derived period end = EDGAR `reportDate` for all 72 filings; 0 duplicate facts).
+9. **Thinking mode is off for a measured reason.** The same answer took 375 tokens with Qwen3 thinking on vs 54 off (~7× slower). On this laptop, prompt processing runs at ~750 tokens/s but generation at ~26 tokens/s, so long contexts are cheap and long answers are expensive. Peak memory 5.6 GB.
 
 ## Setup
 
@@ -20,6 +44,17 @@ uv run python -m evals.questions   # convert FinanceBench into the eval question
 uv run python -m evals.gold        # check that every question's evidence is found in the indexed chunks
 uv run python -m retrieval.search  # show the top chunks for sample questions
 uv run python -m agent.answer      # retrieve and answer sample questions with citations
+```
+
+Evaluation:
+
+```
+uv run python -m evals.own         # check the hand-written questions (format, evidence found in the filings)
+uv run python -m evals.split       # assign questions to dev/test (frozen: only places new ones)
+uv run python -m evals.retrieval --note "..."   # recall@k and MRR on dev, logged to evals/results.jsonl
+uv run python -m evals.misses      # where the latest retrieval run's misses came from
+uv run python -m evals.answers --note "..."     # full RAG on dev (~18 min): accuracy, refusals, citations
+uv run python -m evals.answers --limit 5        # quick test on 5 random questions (not logged)
 ```
 
 ## Evaluation data
@@ -53,6 +88,16 @@ Every eval run is appended to `evals/results.jsonl` (commit, clean/dirty, model 
 Baseline by type (recall@5): table 0.267 (n=15, but recall@1 = 0), text 0.156 (n=32), computation 0.136 (n=44), multi-hop 0.250 (n=8). The generator sees the evidence for only ~1 in 6 facts, so retrieval caps answer accuracy.
 
 Where the baseline's misses come from (`python -m evals.misses`, 115 evidence pieces not in the top 5): 89 (77%) had the right filing in the top 5 but not the evidence chunk; 12 (10%) got only other filings of the right company; 14 (12%) got no chunk from the right company. Across all questions, 55% of top-5 slots go to the wrong filing (38% right company, other filing; 17% other company).
+
+### Answers (dev, 114 questions)
+
+`python -m evals.answers --note "..."`. Accuracy covers number and yes/no answers (a refusal counts as wrong); free-text answers wait for an LLM judge. acc|found / acc|miss: accuracy when retrieval did / did not put all the evidence in the top 5.
+
+| Change | Accuracy | acc\|found | acc\|miss | False refusals | Refusal recall | Refusal precision | Citation rate | Citation validity | Run |
+|---|---|---|---|---|---|---|---|---|---|
+| Baseline: dense top-5, `Qwen3-8B-4bit`, thinking off | 0.243 | 0.75 | 0.182 | 0.586 | 1.0 | 0.205 | 0.976 | 1.0 | `20261104-233612` |
+
+Of 99 answerable questions, retrieval found all the evidence for only 11 (6 correct, 2 refused, 3 free text). For the other 88, the model refused 56: correct behavior for what it was shown. So 56 of the 58 false refusals are retrieval failures; the generator follows the refusal rule and never cites a chunk it was not given.
 
 ## What failed and why
 
@@ -113,7 +158,10 @@ A running log of problems found, why they happened, and what was done about them
 |---|---|---|
 | Supply-chain question answered partly with a financial-risk chunk (credit risk, counterparty failure), cited correctly but irrelevant | Dense retrieval returned macroeconomic Risk Factor chunks, and the model listed every excerpt as part of the answer | **Open:** measure answer relevance separately from citation faithfulness in Week 2; try a reranker in Week 3 |
 | Answers mix fiscal years without saying so (supply-chain answer cites FY2024 and FY2025 chunks) | No fiscal-year filter in retrieval; near-duplicate passages exist in every year's 10-K | **Open:** fiscal-year metadata filter in Week 3 |
-| Refusals tested only on questions where no retrieved chunk was relevant (CEO pay, 2030 revenue) | Baseline smoke test had 4 questions | **Open:** false refusals (refusing when the answer is in the excerpts) are measured with the Week 2 question set |
+| Refusals tested only on questions where no retrieved chunk was relevant (CEO pay, 2030 revenue) | Baseline smoke test had 4 questions | **Measured:** false refusal rate 0.586 on dev, but 56 of 58 happen when retrieval missed the evidence (refusing is then correct). Refusal recall 1.0 is easy while the model refuses 64% of everything; recheck it once retrieval improves |
+| 12 answers scored correct although "evidence missing" from the top 5 | Gold chunks are the chunks containing the quoted passage, but the same number appears elsewhere: next year's 10-K repeats it as a comparison column (`own-002` cited `APPLE_2025_10K`), and revenue appears in the income statement, segment tables and MD&A (`own-006`) | **Open:** recall@k and "evidence found" are lower bounds on true retrieval quality; consider accepting any chunk of the right filing that contains the answer value as gold (Week 3) |
+| Free cash flow question refused although the cash flow statement was retrieved (`fb-04854`) | FCF is not printed in a 10-K; it is computed (operating cash flow − capital expenditures), and the model did not know the definition | **Open:** a generator failure; Week 4 calculator tool / metric definitions |
+| A partial calculation followed by a refusal counts as a refusal (`fb-02608`) | `is_refusal` looks for the refusal sentence anywhere in the answer | **By design for now:** the answer is wrong either way; revisit if mixed answers become common |
 
 Verified: the baseline's answer for Apple's FY2024 R&D ($31,370 million, from the 10-K text) matches the XBRL fact in DuckDB.
 
@@ -123,3 +171,12 @@ Verified: the baseline's answer for Apple's FY2024 R&D ($31,370 million, from th
 |---|---|
 | Items 10–14 (directors, executive compensation, ownership) are incorporated by reference from the proxy statement (DEF 14A), which is not ingested | Questions such as executive pay cannot be answered from 10-Ks; the system should refuse them |
 | XBRL concept names change over time (e.g. revenue moved from `SalesRevenueNet` to `RevenueFromContractWithCustomerExcludingAssessedTax` with the ASC 606 standard in 2018) | A query on one concept name silently misses older years; metrics need a mapping to several candidate concepts |
+| XBRL companyfacts also contain executive pay (`ecd` taxonomy) for 8 companies, taken from proxy statements, not 10-Ks | The Week 4 SQL tool must expose only 10-K/10-Q facts, or proxy questions that should be refused would be answered from data outside the corpus |
+
+### Model choice
+
+| Measurement | Result | Decision |
+|---|---|---|
+| Qwen3-8B (4-bit, MLX) with thinking on vs off, same question | 375 vs 54 generated tokens for the same answer (~7× slower) | Thinking off for the baseline; whether it helps multi-hop questions is tested in Week 4 |
+| Speed on an M4 MacBook Air, ~2.3–3k-token prompts | Prompt processing ~720–777 tokens/s (3–4 s to first token); generation ~25–27 tokens/s; peak memory 5.6 GB | Long contexts are cheap and long answers expensive: prompt processing is parallel (compute-bound), generation is one token at a time (memory-bandwidth-bound) |
+| Full dev answer eval | ~9 s per question, 114 questions in ~18 minutes | Fast enough to rerun after every change |
