@@ -1,0 +1,42 @@
+id,type,answer_kind,auto_correct,correct,faithful,note,question
+fb-01226,computation,text,,n,n,misses gold drivers (earplugs; PFAS; Russia); FY2022 claims cited to a 2023 Q2 10-Q,What drove operating margin change as of FY2022 for 3M? If operating margin is not a useful metric f
+fb-01858,text,yes_no,y,y,y,,Does 3M maintain a stable trend of dividend distribution?
+fb-01079,text,text,,n,n,misses Czech and NZ deals; India deal is an FY2024 subsequent event; Bemis (2019) attributed to FY2022,"What are major acquisitions that AMCOR has done in FY2023, FY2022 and FY2021?"
+fb-01148,text,text,,y,y,,What industry does AMCOR primarily operate in?
+fb-04417,table,number,n,n,n,5140 is the Jan 2023 (FY2023) value attributed to FY2019,What is the year end FY2019 total amount of inventories for Best Buy? Answer in USD millions. Base y
+fb-01077,text,text,,n,n,right companies but says FY2023; cited chunk says fiscal 2022,"What are major acquisitions that Best Buy has done in FY2023, FY2022 and FY2021?"
+fb-00460,text,yes_no,y,y,y,,Was there any change in the number of Best Buy stores between Q2 of FY2024 and FY2023?
+fb-01902,text,text,,n,y,picked largest revenue share; gold means best growth (Entertainment +9%); question ambiguous,Which Best Buy product category performed the best (by top line) in the domestic (USA) Market during
+fb-10130,computation,number,n,n,y,quoted Corning's own DPO (44; trade payables only) instead of computing the question's formula,"Based on the information provided primarily in the balance sheet and the statement of income, what i"
+fb-02981,computation,number,n,n,n,cut off at max tokens; citations in parentheses not brackets; used pre-tax income and one sales figure for all years,"Taking into account the information outlined in the income statement, what is the FY2019 - FY2021 3 "
+fb-05915,computation,number,y,n,n,18.00 vs 17.98 at the requested 2 decimals (auto said y: 1% tolerance too loose); revenue 194579 not in cited chunk,What is the FY2018 fixed asset turnover ratio for CVS Health? Fixed asset turnover ratio is defined 
+fb-00790,computation,yes_no,n,y,n,concludes capital-intensive without the word yes (auto said n); 2727 capex not in cited chunk,Is CVS Health a capital-intensive business based on FY2022 data?
+fb-01107,text,yes_no,y,y,n,2018 10-K cases presented as 2020-2022 legal battles,"Has CVS Health reported any materially important ongoing legal battles from 2022, 2021 and 2020?"
+fb-01244,text,yes_no,y,n,n,yes is right but states 0.605 (2023 rate); 2022 rate was 0.55 (auto said y),Has CVS Health paid dividends to common shareholders in Q2 of FY2022?
+fb-03282,table,number,y,y,n,number supported; sentences on consolidation and estimates not in cited chunk,What is Netflix's year end FY2017 total current liabilities (in USD millions)? Base your judgments o
+fb-01009,text,text,,y,y,,What are the geographies that Pepsico primarily operates in as of FY2022?
+fb-00302,text,yes_no,n,n,n,answered revenue not PP&E; 62.5B and 30.1% not in cited chunk,Did Pfizer grow its PPNE between FY20 and FY21?
+fb-00283,text,text,,n,n,says Pfizer will pay 12.0B; the chunk says Pfizer received it,How much does Pfizer expect to pay to spin off Upjohn in the future in USD million?
+fb-00859,text,text,,n,n,right instrument but 2020 column values attributed to 2021 (26288 vs 32502),Among all of the derivative instruments that Verizon used to manage the exposure to fluctuations of 
+fb-00215,computation,yes_no,y,y,y,,Is Verizon a capital intensive business based on FY 2022 data?
+fb-00566,computation,yes_no,n,n,n,answers with 2020-to-2021 change; question is 2021-to-2022,Has Verizon increased its debt on balance sheet between 2022 and the 2021 fiscal period?
+own-001,table,number,y,y,y,,What were Apple's total net sales in fiscal 2024?
+own-002,computation,number,y,y,y,cites FY2025 10-K whose 2024 column states 46.2%,What was Apple's gross margin percentage in fiscal 2024?
+own-006,table,number,y,y,y,,What was Microsoft's total revenue in fiscal 2023?
+own-012,table,number,y,y,y,,What were Netflix's revenues in 2017?
+own-015,table,number,n,n,n,3504 is International segment revenue presented as total,What was Best Buy's revenue in fiscal 2023?
+own-016,table,number,y,y,y,,What were Pfizer's total revenues in 2021?
+own-017,table,number,y,y,y,,What were Johnson & Johnson's sales to customers in fiscal 2022?
+own-021,table,number,y,y,y,,What were Kraft Heinz's net sales in 2019?
+own-022,table,number,y,y,y,,What were Activision Blizzard's total net revenues in 2019?
+own-025,computation,number,y,y,n,operating income 88523 not in cited chunk (table cut off),What was Microsoft's operating margin in fiscal 2023?
+own-035,computation,number,n,n,n,23.0% is International segment gross margin,What was Best Buy's gross profit as a percentage of revenue in fiscal 2023?
+own-036,computation,number,y,y,n,quarterly revenues used in the sum are uncited,What was Pfizer's net income attributable to common shareholders as a percentage of revenues in 2021
+own-041,computation,number,n,n,n,9% is net income as % of sales not gross margin,What was Corning's gross margin as a percentage of net sales in 2022?
+own-042,computation,number,n,n,n,6.3% not in cited chunk,"What were 3M's research, development and related expenses as a percentage of net sales in 2022?"
+own-055,multi_hop,number,n,n,n,168088 is FY2021 revenue labeled FY2016; cited 2016 chunk shows 85320,How many times larger was Microsoft's total revenue in fiscal 2023 than in fiscal 2016?
+own-064,text,text,,y,n,fiscal 2023 claim cited to the 2016 10-K,What segments did Microsoft use to report its financial performance in fiscal 2023?
+own-065,text,text,,y,y,,What were Verizon's reportable segments in 2022?
+own-067,text,text,,y,n,fiscal 2024 auditor claim cited to the 2023 10-K,"Which firm audited Apple's fiscal 2024 financial statements, and since when?"
+own-068,text,number,y,y,n,since 1921 is not in the cited chunk,"Since what year has Ernst & Young served as Coca-Cola's auditor, according to its 2022 10-K?"
+own-071,text,yes_no,n,n,n,says sales did not decline while quoting a 3% decrease,Did Apple's total net sales decline in fiscal 2023?
