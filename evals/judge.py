@@ -27,7 +27,7 @@ from retrieval.index import INDEX_DIR
 
 JUDGE_MODEL = "mlx-community/gemma-4-12B-it-qat-4bit"
 CORRECT_MAX_TOKENS = 300
-FAITHFUL_MAX_TOKENS = 800  # room for one line per claim
+FAITHFUL_MAX_TOKENS = 1200  # room for one line per claim; at 800, 2 of 41 replies were cut off before the verdict
 VERDICT = re.compile(r"VERDICT:\s*\**\s*([yn])\b", re.IGNORECASE)
 ENDING = 'First explain your reasoning in at most 3 sentences. Then end with a final line that is exactly "VERDICT: y" or "VERDICT: n".'
 
@@ -141,16 +141,19 @@ if __name__ == "__main__":
     if Path(LABELS_PATH).exists():
         with open(LABELS_PATH, newline="") as f:
             labels = {row["id"]: row for row in csv.DictReader(f) if row["correct"] and row["faithful"]}
+    def counted(d, name):
+        """An unparsed verdict counts as "n" (fail closed: the judge did not confirm it). Details keep the raw None."""
+        return d[name] or "n"
+
     metrics = {}
     for name in ("correct", "faithful"):
-        verdicts = [d[name] for d in details if d[name]]
-        metrics[f"{name}_rate"] = round(sum(v == "y" for v in verdicts) / len(verdicts), 3) if verdicts else None
+        metrics[f"{name}_rate"] = round(sum(counted(d, name) == "y" for d in details) / len(details), 3) if details else None
         metrics[f"{name}_unparsed"] = sum(d[name] is None for d in details)
-        pairs = [(d[name], labels[d["id"]][name]) for d in details if d[name] and d["id"] in labels]
+        pairs = [(counted(d, name), labels[d["id"]][name]) for d in details if d["id"] in labels]
         if pairs:
             metrics[f"{name}_vs_labels"] = agreement(pairs)
-    text_pairs = [(d["correct"], labels[d["id"]]["correct"]) for d in details
-                  if d["correct"] and d["id"] in labels and d["answer_kind"] == "text"]
+    text_pairs = [(counted(d, "correct"), labels[d["id"]]["correct"]) for d in details
+                  if d["id"] in labels and d["answer_kind"] == "text"]
     if text_pairs:
         metrics["correct_vs_labels_text_only"] = agreement(text_pairs)
 
@@ -167,7 +170,7 @@ if __name__ == "__main__":
     print(f"\n{run['run_id']}  judged {args.run}  judge={args.model}"
           f"{'  (limited run: not logged)' if args.limit else ''}")
     for name in ("correct", "faithful"):
-        print(f"\n{name}: judge says y for {metrics[f'{name}_rate']}, unparsed {metrics[f'{name}_unparsed']}")
+        print(f"\n{name}: judge says y for {metrics[f'{name}_rate']}, unparsed {metrics[f'{name}_unparsed']} (counted as n)")
         for key in (f"{name}_vs_labels", "correct_vs_labels_text_only" if name == "correct" else None):
             if key in metrics:
                 m = metrics[key]
