@@ -18,12 +18,19 @@ class Retriever:
         self.embeddings = np.load(INDEX_DIR / "embeddings.npy")
         with open(INDEX_DIR / "chunks.jsonl") as f:
             self.chunks = [json.loads(line) for line in f]
+        self.doc_names = np.array([c["doc_name"] for c in self.chunks])  # for filtering by filing
 
-    def search(self, query: str, k: int = 5) -> list[dict]:
-        """Return the k chunks most similar to the query, best first, each with its similarity score."""
+    def search(self, query: str, k: int = 5, doc_names: set[str] | None = None) -> list[dict]:
+        """Return the k chunks most similar to the query, best first, each with its similarity score.
+
+        doc_names: if given, search only the chunks of these filings (None = all chunks, the baseline)."""
         query_vec = self.model.encode(QUERY_PREFIX + query, normalize_embeddings=True)
         scores = self.embeddings @ query_vec
-        top = np.argsort(-scores)[:k]
+        if doc_names is None:
+            candidates = np.arange(len(self.chunks))
+        else:
+            candidates = np.flatnonzero(np.isin(self.doc_names, list(doc_names)))
+        top = candidates[np.argsort(-scores[candidates])][:k]
         return [{**self.chunks[i], "score": float(scores[i])} for i in top]
 
 

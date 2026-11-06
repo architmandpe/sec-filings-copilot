@@ -16,6 +16,7 @@ from retrieval.search import Retriever
 TYPES = ["text", "table", "computation", "multi_hop"]
 KS = (1, 5, 10, 20)  # 5 = what the generator sees; 20 = the pool a reranker could reorder
 METRICS = [f"recall@{k}" for k in KS] + ["mrr"]
+FILTERS = ("none", "oracle")  # which chunks a question may retrieve from (none = baseline)
 
 
 def evidence_gold(q: dict, by_doc: dict) -> list[set[str]]:
@@ -47,6 +48,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--split", default="dev", choices=["dev", "test"])
     parser.add_argument("--note", default="", help="what this run changes, for the results log")
+    parser.add_argument("--filter", default="none", choices=FILTERS,
+                        help="none: search all chunks (baseline); oracle: only the question's evidence filings, "
+                             "taken from the gold labels (an upper bound, not a real system)")
     args = parser.parse_args()
 
     split = load_split()
@@ -61,7 +65,8 @@ if __name__ == "__main__":
             unmatched.append(q["id"])
             continue
         scored.append(q)
-        retrieved = [c["id"] for c in retriever.search(q["question"], k=max(KS))]
+        doc_names = {e["doc_name"] for e in q["evidence"]} if args.filter == "oracle" else None
+        retrieved = [c["id"] for c in retriever.search(q["question"], k=max(KS), doc_names=doc_names)]
         details.append({"id": q["id"], "source": q["source"], "type": q["type"], "question": q["question"],
                         "gold": [sorted(p) for p in gold], "retrieved": retrieved, **score(gold, retrieved)})
 
@@ -76,12 +81,12 @@ if __name__ == "__main__":
         "run_id": new_run_id("retrieval"), "stage": "retrieval", "split": args.split, "note": args.note, **git_state(),
         "n_questions": len(scored),
         "fingerprint": fingerprint(scored, {"gold": gold_settings(), "ks": KS}),
-        "config": retrieval_config(len(retriever.chunks)),
+        "config": retrieval_config(len(retriever.chunks)) | {"filter": args.filter},
         "metrics": metrics,
     }
     save_run(run, details)
 
-    print(f"{run['run_id']}  split={args.split}  commit={run['commit']}{' (dirty)' if run['dirty'] else ''}")
+    print(f"{run['run_id']}  split={args.split}  filter={args.filter}  commit={run['commit']}{' (dirty)' if run['dirty'] else ''}")
     if unmatched:
         print(f"Skipped (evidence matches no chunk): {unmatched}")
     print(f"\n{'':<24}{'n':>5}" + "".join(f"{m:>11}" for m in METRICS))
