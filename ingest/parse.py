@@ -13,6 +13,26 @@ BLOCK_TAGS = ["div", "p", "br", "tr", "li", "table", "h1", "h2", "h3", "h4", "h5
 ITEM_HEADING = re.compile(r"^item\s+(\d{1,2}[a-c]?)(?:\.(?!\d)|[:—–-]|\s|$)\s*(.*)$", re.IGNORECASE)
 PART_HEADING = re.compile(r"^part\s+(i{1,3}|iv)\b", re.IGNORECASE)
 PAGE_HEADER_MIN_REPEATS = 3  # table of contents + body = 2; a line printed on many pages is a running page header
+CELL_SEPARATOR = " | "
+JOIN_NEXT = {"$", "€", "£"}  # a cell holding only a currency sign belongs to the number after it
+JOIN_PREVIOUS = {"%", ")", "%)"}  # ... and a lone "%" or ")" to the number before it
+
+
+def row_text(row) -> str:
+    """One table row as one line: non-empty cells joined by " | ", with "$", "%" and ")" attached to their number.
+
+    Filings often wrap each cell's content in <p> or <div>; without this, every cell would become its own line
+    and a row label would be separated from its numbers."""
+    cells = []
+    for cell in row.find_all(["td", "th"], recursive=False):
+        text = re.sub(r"\s+", " ", cell.get_text(" ")).strip()
+        if not text:
+            continue  # spacer cells
+        if cells and (text in JOIN_PREVIOUS or cells[-1] in JOIN_NEXT):
+            cells[-1] += text
+        else:
+            cells.append(text)
+    return CELL_SEPARATOR.join(cells)
 
 
 def html_to_text(html: bytes) -> str:
@@ -20,6 +40,8 @@ def html_to_text(html: bytes) -> str:
     soup = BeautifulSoup(html, "html.parser")
     for tag in soup.find_all(["script", "style", "ix:header"]):
         tag.decompose()
+    for row in soup.find_all("tr"):  # a nested table's rows were already rendered inside their outer row's text
+        row.replace_with(row_text(row) + "\n")
     for tag in soup.find_all(BLOCK_TAGS):
         tag.insert_after("\n")
     for cell in soup.find_all(["td", "th"]):
@@ -46,7 +68,7 @@ def split_sections(text: str, form: str) -> list[dict]:
         if match and repeats[line] < PAGE_HEADER_MIN_REPEATS:
             item = match.group(1).upper()
             key = f"{part}-{item}" if form == "10-Q" else item
-            starts[key] = (i, match.group(2))
+            starts[key] = (i, match.group(2).strip(CELL_SEPARATOR))  # heading in a table row: "Item 7. | Title"
     headings = sorted((start, item, title) for item, (start, title) in starts.items())
     sections = []
     if headings and headings[0][0] > 0:
