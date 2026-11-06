@@ -57,6 +57,8 @@ uv run python -m evals.retrieval --note "..."   # recall@k and MRR on dev, logge
 uv run python -m evals.misses      # where the latest retrieval run's misses came from
 uv run python -m evals.answers --note "..."     # full RAG on dev (~18 min): accuracy, refusals, citations
 uv run python -m evals.answers --limit 5        # quick test on 5 random questions (not logged)
+uv run python -m evals.judge --run <answers run>  # LLM judge: correctness + faithfulness (~40 min)
+uv run python -m evals.compare <run A> <run B>    # is B better than A? paired bootstrap 95% CI per metric
 ```
 
 ## Evaluation data
@@ -88,6 +90,8 @@ Every eval run is appended to `evals/results.jsonl` (commit, clean/dirty, model 
 | Baseline: dense `bge-small-en-v1.5`, 400-token chunks, 50 overlap | 0.061 | 0.172 | 0.308 | 0.399 | 0.159 | `20261102-224225`, rerun `20261106-122253` (fingerprint `5c6cd2004fb8`) |
 
 The retrieval eval is exactly reproducible: the rerun returned the same top-20 chunk list for 99 of 99 questions, so differences between Week 3 runs come from the change being tested, not from run-to-run noise in the system. (Noise from having only 99 questions still applies; `evals/compare.py` measures it.)
+
+**Comparing runs** (`python -m evals.compare <A> <B>`): for each question, B's score minus A's; the mean is the improvement, and a paired bootstrap (resample the questions with replacement 10,000 times) gives its 95% confidence interval. A change counts as an improvement only if the interval is above 0. It refuses runs with different fingerprints. Checks: baseline vs its rerun gives +0.000 [0, 0] on every metric; a simulated recall@5 gain of +0.136 (17 questions better) gives [+0.076, +0.202]; a single improved question (+0.010) gives [0.000, +0.030], not significant. On 99 questions, gains smaller than about 0.03–0.05 in recall@5 will be hard to separate from noise.
 
 Baseline by type (recall@5): table 0.267 (n=15, but recall@1 = 0), text 0.156 (n=32), computation 0.136 (n=44), multi-hop 0.250 (n=8). The generator sees the evidence for only ~1 in 6 facts, so retrieval caps answer accuracy.
 
