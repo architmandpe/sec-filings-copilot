@@ -1,0 +1,8 @@
+# Hosted retrieval-only demo (Streamlit Community Cloud, Linux CPU). Read instead of the root pyproject.toml,
+# which includes mlx-lm (Apple silicon only).
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+sentence-transformers==6.2.0
+numpy
+huggingface_hub
+streamlit

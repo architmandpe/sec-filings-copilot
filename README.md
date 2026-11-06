@@ -56,6 +56,7 @@ uv run python -m retrieval.search  # show the top chunks for sample questions
 uv run python -m agent.answer      # retrieve and answer sample questions with citations
 uv run python app.py               # web demo at http://127.0.0.1:7860: retrieved passages + streamed cited answer
                                    # (filter + hybrid + reranker; without MLX, e.g. on Linux, retrieval only)
+streamlit run deploy/streamlit/streamlit_app.py  # the hosted retrieval-only demo (index downloaded from Hugging Face)
 ```
 
 Evaluation:
@@ -238,6 +239,13 @@ A running log of problems found, why they happened, and what was done about them
 | A partial calculation followed by a refusal counts as a refusal (`fb-02608`) | `is_refusal` looks for the refusal sentence anywhere in the answer | **By design for now:** the answer is wrong either way; revisit if mixed answers become common |
 
 Verified: the baseline's answer for Apple's FY2024 R&D ($31,370 million, from the 10-K text) matches the XBRL fact in DuckDB.
+
+### Deployment
+
+| Problem | Cause | Status |
+|---|---|---|
+| The Gradio demo could not be hosted on a free Hugging Face Space (402 Payment Required) | Hugging Face now requires a PRO subscription for Gradio and Docker Spaces, even on free CPU hardware; only static Spaces are free. Conflicts with the $0 rule | **Worked around:** retrieval-only Streamlit app (`deploy/streamlit/`) on Streamlit Community Cloud (free); the 73 MB index lives in a free Hugging Face dataset repo (`architmandpe02/sec-filings-copilot-index`, pinned revision) and is downloaded at startup. Tested from a code-only copy in a clean environment: peak memory 1.73 GB, ~1.6 s per query after loading. The Gradio `app.py` stays the local demo with generated answers |
+| Hosting can't run the generator | Qwen3-8B runs on Apple MLX; free hosts are Linux CPUs | **By design:** hosted demo shows retrieval; answers run locally (`app.py`). `agent/answer.py` imports MLX only when the generator is loaded, so the same code runs on both |
 
 ### Data limitations
 

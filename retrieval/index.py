@@ -6,8 +6,6 @@ from pathlib import Path
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
-from ingest.corpus import CORPUS_PATH
-
 EMBED_MODEL = "BAAI/bge-small-en-v1.5"
 CHUNK_TOKENS = 400
 OVERLAP_TOKENS = 50
@@ -28,6 +26,7 @@ def chunk_text(text: str, tokenizer) -> list[str]:
 
 def build_chunks(tokenizer) -> list[dict]:
     """Chunk every section of every corpus filing, with metadata for filtering and citation."""
+    from ingest.corpus import CORPUS_PATH  # imported here so searching (e.g. the hosted demo) doesn't need ingest/
     with open(CORPUS_PATH) as f:
         corpus = [json.loads(line) for line in f]
     chunks = []
