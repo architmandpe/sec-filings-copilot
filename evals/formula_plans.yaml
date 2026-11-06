@@ -1,0 +1,64 @@
+# Hand-written plans for the 24 dev FinanceBench "metrics-generated" questions: which numbers to fetch with
+# get_financial ([company, metric, fiscal_year]; values in USD millions) and the expression the calculator runs.
+# A perfect planner, so the score is a ceiling for tools: what an agent with these tools can reach at best.
+# Formulas follow each question's own definition; "% margin" answers are computed in percent.
+
+- {id: fb-03029, lookups: {capex: [3M, capex, 2018]}, expression: "{capex}"}
+- {id: fb-04672, lookups: {ppe: [3M, ppe_net, 2018]}, expression: "{ppe} / 1000"}
+- {id: fb-02987, lookups: {rev: [Activision Blizzard, revenue, 2019], ppe18: [Activision Blizzard, ppe_net, 2018],
+                           ppe19: [Activision Blizzard, ppe_net, 2019]},
+   expression: "{rev} / avg({ppe18}, {ppe19})"}
+- {id: fb-07966, lookups: {c17: [Activision Blizzard, capex, 2017], c18: [Activision Blizzard, capex, 2018],
+                           c19: [Activision Blizzard, capex, 2019], r17: [Activision Blizzard, revenue, 2017],
+                           r18: [Activision Blizzard, revenue, 2018], r19: [Activision Blizzard, revenue, 2019]},
+   expression: "avg({c17} / {r17}, {c18} / {r18}, {c19} / {r19}) * 100"}
+- {id: fb-03882, lookups: {ar: [Amcor, accounts_receivable, 2020]}, expression: "{ar}"}
+- {id: fb-02608, lookups: {n15: [Best Buy, net_income, 2015], n16: [Best Buy, net_income, 2016],
+                           n17: [Best Buy, net_income, 2017], r15: [Best Buy, revenue, 2015],
+                           r16: [Best Buy, revenue, 2016], r17: [Best Buy, revenue, 2017]},
+   expression: "avg({n15} / {r15}, {n16} / {r16}, {n17} / {r17}) * 100"}
+- {id: fb-04417, lookups: {inv: [Best Buy, inventory, 2019]}, expression: "{inv}"}
+- {id: fb-03473, lookups: {ni: [Coca-Cola, net_income, 2017], ta16: [Coca-Cola, total_assets, 2016],
+                           ta17: [Coca-Cola, total_assets, 2017]},
+   expression: "{ni} / avg({ta16}, {ta17})"}
+- {id: fb-09724, lookups: {cogs: [Coca-Cola, cost_of_revenue, 2021], rev: [Coca-Cola, revenue, 2021]},
+   expression: "{cogs} / {rev} * 100"}
+- {id: fb-06272, lookups: {div: [Coca-Cola, dividends_paid, 2022], ni: [Coca-Cola, net_income, 2022]},
+   expression: "{div} / {ni}"}
+- {id: fb-10130, lookups: {ap19: [Corning, accounts_payable, 2019], ap20: [Corning, accounts_payable, 2020],
+                           cogs: [Corning, cost_of_revenue, 2020], inv19: [Corning, inventory, 2019],
+                           inv20: [Corning, inventory, 2020]},
+   expression: "365 * avg({ap19}, {ap20}) / ({cogs} + ({inv20} - {inv19}))"}
+- {id: fb-02981, lookups: {o19: [Corning, operating_income, 2019], o20: [Corning, operating_income, 2020],
+                           o21: [Corning, operating_income, 2021], r19: [Corning, revenue, 2019],
+                           r20: [Corning, revenue, 2020], r21: [Corning, revenue, 2021]},
+   expression: "avg({o19} / {r19}, {o20} / {r20}, {o21} / {r21}) * 100"}
+- {id: fb-05915, lookups: {rev: [CVS Health, revenue, 2018], ppe17: [CVS Health, ppe_net, 2017],
+                           ppe18: [CVS Health, ppe_net, 2018]},
+   expression: "{rev} / avg({ppe17}, {ppe18})"}
+- {id: fb-04103, lookups: {inv18: [General Mills, inventory, 2018], inv19: [General Mills, inventory, 2019],
+                           ar18: [General Mills, accounts_receivable, 2018], ar19: [General Mills, accounts_receivable, 2019],
+                           ap18: [General Mills, accounts_payable, 2018], ap19: [General Mills, accounts_payable, 2019],
+                           cogs: [General Mills, cost_of_revenue, 2019], rev: [General Mills, revenue, 2019]},
+   expression: "365 * avg({inv18}, {inv19}) / {cogs} + 365 * avg({ar18}, {ar19}) / {rev} - 365 * avg({ap18}, {ap19}) / ({cogs} + ({inv19} - {inv18}))"}
+- {id: fb-03471, lookups: {ca: [General Mills, current_assets, 2020], cl: [General Mills, current_liabilities, 2020]},
+   expression: "{ca} / {cl}"}
+- {id: fb-04854, lookups: {ocf: [General Mills, operating_cash_flow, 2020], capex: [General Mills, capex, 2020]},
+   expression: "{ocf} - {capex}"}
+- {id: fb-10136, lookups: {div: [General Mills, dividends_paid, 2022], ni: [General Mills, net_income, 2022]},
+   expression: "1 - {div} / {ni}"}
+- {id: fb-10499, lookups: {cogs: [Kraft Heinz, cost_of_revenue, 2019], inv18: [Kraft Heinz, inventory, 2018],
+                           inv19: [Kraft Heinz, inventory, 2019]},
+   expression: "{cogs} / avg({inv18}, {inv19})"}
+- {id: fb-04700, lookups: {cogs: [Microsoft, cost_of_revenue, 2016]}, expression: "{cogs}"}
+- {id: fb-04458, lookups: {oi: [Netflix, operating_income, 2015], da: [Netflix, depreciation_amortization, 2015],
+                           rev: [Netflix, revenue, 2015]},
+   expression: "({oi} + {da}) / {rev} * 100"}
+- {id: fb-03282, lookups: {cl: [Netflix, current_liabilities, 2017]}, expression: "{cl}"}
+- {id: fb-04980, lookups: {capex: [PepsiCo, capex, 2021]}, expression: "{capex} / 1000"}
+- {id: fb-03620, lookups: {oi: [PepsiCo, operating_income, 2022], da: [PepsiCo, depreciation_amortization, 2022],
+                           capex: [PepsiCo, capex, 2022]},
+   expression: "{oi} + {da} - {capex}"}
+- {id: fb-04481, lookups: {oi: [PepsiCo, operating_income, 2022], da: [PepsiCo, depreciation_amortization, 2022],
+                           rev: [PepsiCo, revenue, 2022]},
+   expression: "({oi} + {da}) / {rev} * 100"}
