@@ -27,6 +27,8 @@ CITATION = re.compile(r"\[([^\[\]]+)\]")
 # A chunk ID: <doc_name>-<item>-<nnn>, e.g. 3M_2018_10K-7-065, JOHNSON_JOHNSON_2022_10K-8-002, CVSHEALTH_2018_10K-EX-13.1-007
 CHUNK_ID = re.compile(r"[A-Za-z0-9&_]+_\d{4}(?:Q\d)?_10[KQ]-[A-Za-z0-9.-]+-\d{3}")
 NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?")
+# chunk fields saved with each cited chunk: what the judge and the label sheet show (format_context needs them all)
+SAVED_CHUNK_FIELDS = ("id", "company", "form", "fiscal_year", "fiscal_period", "item", "title", "text")
 
 
 def is_refusal(text: str) -> bool:
@@ -127,7 +129,10 @@ if __name__ == "__main__":
             "refused": is_refusal(text), "correct": judge(q, text),
             "citations": cited, "invalid_citations": [c for c in cited if c not in retrieved],
             "evidence_retrieved": all(piece & retrieved for piece in gold) if gold else None,
-            "retrieved": [c["id"] for c in chunks], "seconds": round(time.perf_counter() - start, 1),
+            "retrieved": [c["id"] for c in chunks],
+            # the text the answer was grounded in, so judging it later doesn't depend on the current index
+            "cited_chunks": {c["id"]: {k: c[k] for k in SAVED_CHUNK_FIELDS} for c in chunks if c["id"] in cited},
+            "seconds": round(time.perf_counter() - start, 1),
         }
         details.append(row)
         status = "refused" if row["refused"] else {True: "correct", False: "wrong", None: "unscored"}[row["correct"]]

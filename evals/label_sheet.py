@@ -13,7 +13,7 @@ import csv
 import json
 import sys
 
-from evals.runlog import run_path
+from evals.runlog import cited_chunks, run_path
 from retrieval.index import INDEX_DIR
 
 LABELS_PATH = "evals/judge_labels.csv"
@@ -68,8 +68,9 @@ if __name__ == "__main__":
                     f"**Gold answer:** {r['gold_answer']}\n\n**Answer:**\n\n{r['answer']}\n\n")
             if not r["citations"]:
                 f.write("**Cited chunks:** none\n")
+            found = {c["id"]: c for c in cited_chunks(r, chunks)}
             for cid in dict.fromkeys(r["citations"]):  # unique, in citation order
-                c = chunks.get(cid)
+                c = found.get(cid)
                 if c is None:
                     f.write(f"**[{cid}]** (not a chunk ID)\n\n")
                     continue

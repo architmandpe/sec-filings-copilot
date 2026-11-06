@@ -55,6 +55,16 @@ def run_path(run_id: str) -> Path:
     raise FileNotFoundError(f"no details for run {run_id} in {RUNS_DIR} or {SCRATCH_RUNS_DIR}")
 
 
+def cited_chunks(row: dict, index: dict[str, dict]) -> list[dict]:
+    """The chunks one answer cites, unique, in citation order.
+
+    Answer runs from 2026-11-06 on save the cited chunks with the answer ("cited_chunks"), so they stay readable
+    after the index is rebuilt. Older runs fall back to the current index (id -> chunk), which shows the right text
+    only if the index hasn't been re-chunked since the run."""
+    source = row["cited_chunks"] if "cited_chunks" in row else index
+    return [source[cid] for cid in dict.fromkeys(row["citations"]) if cid in source]
+
+
 def save_run(run: dict, details: list[dict], log: bool = True) -> None:
     """Append the run summary to the results log and write the per-question details next to it.
 

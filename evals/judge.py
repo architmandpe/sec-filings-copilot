@@ -22,7 +22,7 @@ from mlx_lm import generate, load
 
 from agent.answer import format_context
 from evals.label_sheet import LABELS_PATH
-from evals.runlog import git_state, model_revision, new_run_id, run_path, save_run
+from evals.runlog import cited_chunks, git_state, model_revision, new_run_id, run_path, save_run
 from retrieval.index import INDEX_DIR
 
 JUDGE_MODEL = "mlx-community/gemma-4-12B-it-qat-4bit"
@@ -124,7 +124,7 @@ if __name__ == "__main__":
         start = time.perf_counter()
         correct, correct_reply = judge.verdict(
             CORRECT_PROMPT.format(question=r["question"], gold=r["gold_answer"], answer=r["answer"]), CORRECT_MAX_TOKENS)
-        cited = [chunks[c] for c in dict.fromkeys(r["citations"]) if c in chunks]
+        cited = cited_chunks(r, chunks)
         if cited:
             faithful, faithful_reply = judge.verdict(
                 FAITHFUL_PROMPT.format(question=r["question"], answer=r["answer"], excerpts=format_context(cited)),
