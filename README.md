@@ -5,6 +5,8 @@ Answers questions with cited evidence, computes financial metrics, and refuses w
 
 **Status:** Week 3: retrieval improvements measured at both the retrieval and the answer level. Week 4 (agent with SQL over XBRL facts and a calculator) is next.
 
+**Live demo (retrieval only):** https://sec-filings-copilot.streamlit.app. Search the filings and see the passages the system answers from. Cited answers come from Qwen3-8B running locally on Apple MLX (`python app.py`).
+
 ## At a glance
 
 | | |
