@@ -20,7 +20,8 @@ FINGERPRINT_FIELDS = ("id", "question", "answer", "answer_kind", "answer_value",
 def git_state() -> dict:
     """The current commit, and whether tracked or new files differ from it (a dirty run can't be rebuilt from the commit)."""
     commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True).stdout.strip()
-    changes = subprocess.run(["git", "status", "--porcelain", "--", ".", f":!{RESULTS_PATH}"],
+    # Eval outputs (the log and run details) don't change the code, so they don't make a run dirty.
+    changes = subprocess.run(["git", "status", "--porcelain", "--", ".", f":!{RESULTS_PATH}", f":!{RUNS_DIR}"],
                              capture_output=True, text=True).stdout.strip()
     return {"commit": commit, "dirty": bool(changes)}
 
