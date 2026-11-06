@@ -136,7 +136,7 @@ if __name__ == "__main__":
         "fingerprint": fingerprint(questions, {
             "gold": gold_settings(),
             "scorer": {"rel_tol": REL_TOL, "abs_tol": ABS_TOL, "scales": SCALES, "refusal": REFUSAL}}),
-        "config": retrieval_config(len(rag.retriever.chunks)) | {
+        "config": retrieval_config(rag.retriever) | {
             "gen_model": GEN_MODEL, "gen_revision": model_revision(GEN_MODEL), "top_k": TOP_K,
             "max_tokens": MAX_TOKENS, "thinking": False,
             "system_prompt_sha": hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest()[:8]},

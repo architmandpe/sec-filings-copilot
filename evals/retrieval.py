@@ -5,6 +5,7 @@ Only answerable questions are scored (unanswerable ones have no evidence). A que
 """
 
 import argparse
+import time
 from collections import defaultdict
 
 from evals.gold import gold_settings, load_chunks_by_doc, match_evidence
@@ -12,7 +13,7 @@ from evals.runlog import fingerprint, git_state, model_revision, new_run_id, sav
 from evals.split import load_questions, load_split
 from retrieval.index import CHUNK_TOKENS, EMBED_MODEL, OVERLAP_TOKENS
 from retrieval.filters import FilingFilter
-from retrieval.search import Retriever
+from retrieval.search import RERANK_CANDIDATES, SEARCH_MODES, Retriever
 
 TYPES = ["text", "table", "computation", "multi_hop"]
 KS = (1, 5, 10, 20)  # 5 = what the generator sees; 20 = the pool a reranker could reorder
@@ -35,10 +36,14 @@ def score(gold: list[set[str]], retrieved: list[str]) -> dict:
     return row
 
 
-def retrieval_config(n_chunks: int) -> dict:
+def retrieval_config(retriever: Retriever) -> dict:
     """The retrieval settings a run depends on (shared with the answer eval)."""
-    return {"embed_model": EMBED_MODEL, "embed_revision": model_revision(EMBED_MODEL),
-            "chunk_tokens": CHUNK_TOKENS, "overlap_tokens": OVERLAP_TOKENS, "n_chunks": n_chunks}
+    cfg = {"embed_model": EMBED_MODEL, "embed_revision": model_revision(EMBED_MODEL),
+           "chunk_tokens": CHUNK_TOKENS, "overlap_tokens": OVERLAP_TOKENS, "n_chunks": len(retriever.chunks)}
+    cfg |= retriever.config()
+    if cfg["rerank_model"]:
+        cfg["rerank_revision"] = model_revision(cfg["rerank_model"])
+    return cfg
 
 
 def average(rows: list[dict]) -> dict:
@@ -53,12 +58,17 @@ if __name__ == "__main__":
                         help="none: search all chunks (baseline); oracle: only the question's evidence filings, "
                              "taken from the gold labels (an upper bound, not a real system); company / company_year: "
                              "filings inferred from the question text (retrieval/filters.py)")
+    parser.add_argument("--search", default="dense", choices=SEARCH_MODES,
+                        help="dense: embeddings only (baseline); hybrid: dense + BM25 merged by reciprocal rank fusion")
+    parser.add_argument("--rerank", action="store_true", help="re-order the top candidates with a cross-encoder")
+    parser.add_argument("--candidates", type=int, default=RERANK_CANDIDATES,
+                        help="how many first-stage chunks the reranker re-orders (default: %(default)s)")
     args = parser.parse_args()
 
     split = load_split()
     questions = [q for q in load_questions() if split[q["id"]] == args.split and q["evidence"]]
     by_doc = load_chunks_by_doc()
-    retriever = Retriever()
+    retriever = Retriever(mode=args.search, rerank=args.rerank, candidates=args.candidates)
     filing_filter = FilingFilter(retriever.chunks)
 
     def filter_docs(q: dict) -> set[str] | None:
@@ -69,7 +79,7 @@ if __name__ == "__main__":
             return filing_filter.infer(q["question"], use_year=args.filter == "company_year")
         return None
 
-    details, unmatched, scored = [], [], []
+    details, unmatched, scored, search_seconds = [], [], [], []
     for q in questions:
         gold = evidence_gold(q, by_doc)
         if not gold:
@@ -77,7 +87,9 @@ if __name__ == "__main__":
             continue
         scored.append(q)
         doc_names = filter_docs(q)
+        start = time.perf_counter()
         retrieved = [c["id"] for c in retriever.search(q["question"], k=max(KS), doc_names=doc_names)]
+        search_seconds.append(time.perf_counter() - start)
         evidence_docs = {e["doc_name"] for e in q["evidence"]}
         details.append({"id": q["id"], "source": q["source"], "type": q["type"], "question": q["question"],
                         "gold": [sorted(p) for p in gold], "retrieved": retrieved, **score(gold, retrieved),
@@ -101,13 +113,15 @@ if __name__ == "__main__":
         "run_id": new_run_id("retrieval"), "stage": "retrieval", "split": args.split, "note": args.note, **git_state(),
         "n_questions": len(scored),
         "fingerprint": fingerprint(scored, {"gold": gold_settings(), "ks": KS}),
-        "config": retrieval_config(len(retriever.chunks)) | {"filter": args.filter},
+        "config": retrieval_config(retriever) | {"filter": args.filter},
+        "seconds_per_question": round(sum(search_seconds) / len(search_seconds), 3),
         "metrics": metrics,
         "filter_stats": filter_stats,
     }
     save_run(run, details)
 
-    print(f"{run['run_id']}  split={args.split}  filter={args.filter}  commit={run['commit']}{' (dirty)' if run['dirty'] else ''}")
+    print(f"{run['run_id']}  split={args.split}  filter={args.filter}  search={args.search}"
+          f"{f'  rerank top {args.candidates}' if args.rerank else ''}  {run['seconds_per_question']} s/question  commit={run['commit']}{' (dirty)' if run['dirty'] else ''}")
     if unmatched:
         print(f"Skipped (evidence matches no chunk): {unmatched}")
     if args.filter != "none":
