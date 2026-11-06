@@ -7,8 +7,8 @@ Only answerable questions are scored (unanswerable ones have no evidence). A que
 import argparse
 from collections import defaultdict
 
-from evals.gold import load_chunks_by_doc, match_evidence
-from evals.runlog import git_state, model_revision, new_run_id, save_run
+from evals.gold import gold_settings, load_chunks_by_doc, match_evidence
+from evals.runlog import fingerprint, git_state, model_revision, new_run_id, save_run
 from evals.split import load_questions, load_split
 from retrieval.index import CHUNK_TOKENS, EMBED_MODEL, OVERLAP_TOKENS
 from retrieval.search import Retriever
@@ -54,12 +54,13 @@ if __name__ == "__main__":
     by_doc = load_chunks_by_doc()
     retriever = Retriever()
 
-    details, unmatched = [], []
+    details, unmatched, scored = [], [], []
     for q in questions:
         gold = evidence_gold(q, by_doc)
         if not gold:
             unmatched.append(q["id"])
             continue
+        scored.append(q)
         retrieved = [c["id"] for c in retriever.search(q["question"], k=max(KS))]
         details.append({"id": q["id"], "source": q["source"], "type": q["type"], "question": q["question"],
                         "gold": [sorted(p) for p in gold], "retrieved": retrieved, **score(gold, retrieved)})
@@ -73,6 +74,8 @@ if __name__ == "__main__":
 
     run = {
         "run_id": new_run_id("retrieval"), "stage": "retrieval", "split": args.split, "note": args.note, **git_state(),
+        "n_questions": len(scored),
+        "fingerprint": fingerprint(scored, {"gold": gold_settings(), "ks": KS}),
         "config": retrieval_config(len(retriever.chunks)),
         "metrics": metrics,
     }

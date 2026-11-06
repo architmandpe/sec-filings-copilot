@@ -77,7 +77,7 @@ FinanceBench has no unanswerable or multi-company questions, so the own set supp
 
 ## Results
 
-Every eval run is appended to `evals/results.jsonl` (commit, clean/dirty, model revisions, config, metrics by source and type); per-question details go to `data/evals/runs/`.
+Every eval run is appended to `evals/results.jsonl` (commit, clean/dirty, model revisions, config, metrics by source and type, and a **fingerprint**: a hash of the scored questions, their gold answers and evidence, and the scoring settings; runs are comparable only when fingerprints match). Per-question details of logged runs are committed in `evals/runs/`, so any result can be recomputed and two runs compared question by question; quick `--limit` test runs go to the gitignored `data/evals/runs/`. Runs before 2026-11-06 have no fingerprint.
 
 ### Retrieval ablation (dev, 99 answerable questions)
 

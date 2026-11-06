@@ -18,6 +18,11 @@ MIN_WINDOWS = 3  # a chunk must contain at least this many windows (or all of th
 RELATIVE = 0.5  # ... and at least half as many as the best-matching chunk
 
 
+def gold_settings() -> dict:
+    """The matching settings, for the run fingerprint: changing them changes which chunks count as gold."""
+    return {"window": WINDOW, "min_windows": MIN_WINDOWS, "relative": RELATIVE}
+
+
 def normalize(text: str) -> str:
     return re.sub(r"[^a-z0-9]", "", text.lower())
 

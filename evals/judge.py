@@ -22,7 +22,7 @@ from mlx_lm import generate, load
 
 from agent.answer import format_context
 from evals.label_sheet import LABELS_PATH
-from evals.runlog import RUNS_DIR, git_state, model_revision, new_run_id, save_run
+from evals.runlog import git_state, model_revision, new_run_id, run_path, save_run
 from retrieval.index import INDEX_DIR
 
 JUDGE_MODEL = "mlx-community/gemma-4-12B-it-qat-4bit"
@@ -111,7 +111,7 @@ if __name__ == "__main__":
     parser.add_argument("--limit", type=int, help="judge only this many random answers (a quick test; not logged)")
     args = parser.parse_args()
 
-    with open(RUNS_DIR / f"{args.run}.jsonl") as f:
+    with open(run_path(args.run)) as f:
         answered = [r for r in map(json.loads, f) if not r["refused"]]  # refusals are scored without a judge
     if args.limit:
         answered = random.Random(0).sample(answered, args.limit)

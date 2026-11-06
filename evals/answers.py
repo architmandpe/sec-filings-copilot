@@ -14,9 +14,9 @@ import time
 from collections import defaultdict
 
 from agent.answer import GEN_MODEL, MAX_TOKENS, REFUSAL, RAG, SYSTEM_PROMPT, TOP_K
-from evals.gold import load_chunks_by_doc
+from evals.gold import gold_settings, load_chunks_by_doc
 from evals.retrieval import evidence_gold, retrieval_config
-from evals.runlog import git_state, model_revision, new_run_id, save_run
+from evals.runlog import fingerprint, git_state, model_revision, new_run_id, save_run
 from evals.split import load_questions, load_split
 
 TYPES = ["text", "table", "computation", "multi_hop", "unanswerable"]
@@ -132,6 +132,10 @@ if __name__ == "__main__":
     run = {
         "run_id": new_run_id("answers"), "stage": "answers", "split": args.split, "note": args.note,
         "limit": args.limit, **git_state(),
+        "n_questions": len(questions),
+        "fingerprint": fingerprint(questions, {
+            "gold": gold_settings(),
+            "scorer": {"rel_tol": REL_TOL, "abs_tol": ABS_TOL, "scales": SCALES, "refusal": REFUSAL}}),
         "config": retrieval_config(len(rag.retriever.chunks)) | {
             "gen_model": GEN_MODEL, "gen_revision": model_revision(GEN_MODEL), "top_k": TOP_K,
             "max_tokens": MAX_TOKENS, "thinking": False,

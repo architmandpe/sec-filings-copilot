@@ -8,7 +8,7 @@ import json
 from collections import Counter
 
 from evals.gold import load_chunks_by_doc, match_evidence, normalize
-from evals.runlog import RUNS_DIR
+from evals.runlog import RUNS_DIR, run_path
 from evals.split import load_questions
 from retrieval.index import INDEX_DIR
 
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--run", help="run id, e.g. 20261102-224225-retrieval (default: the latest retrieval run)")
     args = parser.parse_args()
-    path = RUNS_DIR / f"{args.run}.jsonl" if args.run else max(RUNS_DIR.glob("*-retrieval.jsonl"))
+    path = run_path(args.run) if args.run else max(RUNS_DIR.glob("*-retrieval.jsonl"))
     with open(path) as f:
         rows = [json.loads(line) for line in f]
     questions = {q["id"]: q for q in load_questions()}

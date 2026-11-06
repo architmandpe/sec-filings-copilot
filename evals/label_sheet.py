@@ -13,7 +13,7 @@ import csv
 import json
 import sys
 
-from evals.runlog import RUNS_DIR
+from evals.runlog import run_path
 from retrieval.index import INDEX_DIR
 
 LABELS_PATH = "evals/judge_labels.csv"
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     except FileExistsError:
         sys.exit(f"{LABELS_PATH} already exists; not overwriting labels. Delete it first to start over.")
 
-    with open(RUNS_DIR / f"{args.run}.jsonl") as f:
+    with open(run_path(args.run)) as f:
         answered = [r for r in map(json.loads, f) if not r["refused"]]
     with open(INDEX_DIR / "chunks.jsonl") as f:
         chunks = {c["id"]: c for c in map(json.loads, f)}
