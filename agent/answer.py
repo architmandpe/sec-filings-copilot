@@ -1,8 +1,8 @@
 """RAG: retrieve chunks, then have the local LLM answer from them with chunk-ID citations.
 
-Retrieval options are switches; the defaults reproduce the Week 2 baseline (dense search over all chunks)."""
-
-from mlx_lm import generate, load
+Retrieval options are switches; the defaults reproduce the Week 2 baseline (dense search over all chunks).
+mlx_lm (Apple silicon only) is imported only when the generator is loaded, so retrieval also runs on Linux
+(the hosted demo)."""
 
 from retrieval.filters import FilingFilter
 from retrieval.search import Retriever
@@ -32,26 +32,48 @@ def format_context(chunks: list[dict]) -> str:
 class RAG:
     """Holds the retriever and the generator model in memory for repeated questions."""
 
-    def __init__(self, filter_filings: bool = False, search: str = "dense", rerank: bool = False):
+    def __init__(self, filter_filings: bool = False, search: str = "dense", rerank: bool = False,
+                 load_generator: bool = True):
         """filter_filings: search only the filings of the companies and years the question names (retrieval/filters.py).
-        search: "dense" or "hybrid" (dense + BM25). rerank: re-order the top candidates with a cross-encoder."""
+        search: "dense" or "hybrid" (dense + BM25). rerank: re-order the top candidates with a cross-encoder.
+        load_generator: False = retrieval only (no LLM; for machines without MLX)."""
         self.retriever = Retriever(mode=search, rerank=rerank)
         self.filing_filter = FilingFilter(self.retriever.chunks) if filter_filings else None
-        self.model, self.tokenizer = load(GEN_MODEL)
+        self.model = self.tokenizer = None
+        if load_generator:
+            from mlx_lm import load
+            self.model, self.tokenizer = load(GEN_MODEL)
+
+    def retrieve(self, question: str) -> list[dict]:
+        """The TOP_K chunks given to the LLM for this question."""
+        doc_names = self.filing_filter.infer(question) if self.filing_filter else None
+        return self.retriever.search(question, k=TOP_K, doc_names=doc_names)
+
+    def prompt(self, question: str, chunks: list[dict]) -> str:
+        """The chat-formatted prompt: rules, then the excerpts and the question (thinking mode off)."""
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": f"Excerpts:\n\n{format_context(chunks)}\n\nQuestion: {question}"},
+        ]
+        return self.tokenizer.apply_chat_template(messages, add_generation_prompt=True, enable_thinking=False)
 
     def answer(self, question: str, verbose: bool = True) -> tuple[str, list[dict]]:
         """Retrieve evidence for the question and generate a cited answer; return the answer and the chunks used.
 
         verbose streams the answer and prints speed stats (on for the demo, off for evals)."""
-        doc_names = self.filing_filter.infer(question) if self.filing_filter else None
-        chunks = self.retriever.search(question, k=TOP_K, doc_names=doc_names)
-        messages = [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": f"Excerpts:\n\n{format_context(chunks)}\n\nQuestion: {question}"},
-        ]
-        prompt = self.tokenizer.apply_chat_template(messages, add_generation_prompt=True, enable_thinking=False)
-        text = generate(self.model, self.tokenizer, prompt=prompt, max_tokens=MAX_TOKENS, verbose=verbose)
+        from mlx_lm import generate
+        chunks = self.retrieve(question)
+        text = generate(self.model, self.tokenizer, prompt=self.prompt(question, chunks), max_tokens=MAX_TOKENS,
+                        verbose=verbose)
         return text, chunks
+
+    def stream(self, question: str, chunks: list[dict]):
+        """Yield the answer as it grows, piece by piece (for the web demo); same prompt and decoding as answer()."""
+        from mlx_lm import stream_generate
+        text = ""
+        for response in stream_generate(self.model, self.tokenizer, self.prompt(question, chunks), max_tokens=MAX_TOKENS):
+            text += response.text
+            yield text
 
 
 if __name__ == "__main__":

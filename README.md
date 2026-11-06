@@ -54,6 +54,8 @@ uv run python -m evals.questions   # convert FinanceBench into the eval question
 uv run python -m evals.gold        # check that every question's evidence is found in the indexed chunks
 uv run python -m retrieval.search  # show the top chunks for sample questions
 uv run python -m agent.answer      # retrieve and answer sample questions with citations
+uv run python app.py               # web demo at http://127.0.0.1:7860: retrieved passages + streamed cited answer
+                                   # (filter + hybrid + reranker; without MLX, e.g. on Linux, retrieval only)
 ```
 
 Evaluation:
