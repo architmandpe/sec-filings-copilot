@@ -85,7 +85,9 @@ Every eval run is appended to `evals/results.jsonl` (commit, clean/dirty, model 
 
 | Change | recall@1 | recall@5 | recall@10 | recall@20 | MRR | Run |
 |---|---|---|---|---|---|---|
-| Baseline: dense `bge-small-en-v1.5`, 400-token chunks, 50 overlap | 0.061 | 0.172 | 0.308 | 0.399 | 0.159 | `20261102-224225` |
+| Baseline: dense `bge-small-en-v1.5`, 400-token chunks, 50 overlap | 0.061 | 0.172 | 0.308 | 0.399 | 0.159 | `20261102-224225`, rerun `20261106-122253` (fingerprint `5c6cd2004fb8`) |
+
+The retrieval eval is exactly reproducible: the rerun returned the same top-20 chunk list for 99 of 99 questions, so differences between Week 3 runs come from the change being tested, not from run-to-run noise in the system. (Noise from having only 99 questions still applies; `evals/compare.py` measures it.)
 
 Baseline by type (recall@5): table 0.267 (n=15, but recall@1 = 0), text 0.156 (n=32), computation 0.136 (n=44), multi-hop 0.250 (n=8). The generator sees the evidence for only ~1 in 6 facts, so retrieval caps answer accuracy.
 
