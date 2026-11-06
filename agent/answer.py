@@ -1,7 +1,10 @@
-"""Baseline RAG: retrieve chunks, then have the local LLM answer from them with chunk-ID citations."""
+"""RAG: retrieve chunks, then have the local LLM answer from them with chunk-ID citations.
+
+Retrieval options are switches; the defaults reproduce the Week 2 baseline (dense search over all chunks)."""
 
 from mlx_lm import generate, load
 
+from retrieval.filters import FilingFilter
 from retrieval.search import Retriever
 
 GEN_MODEL = "mlx-community/Qwen3-8B-4bit"
@@ -29,15 +32,19 @@ def format_context(chunks: list[dict]) -> str:
 class RAG:
     """Holds the retriever and the generator model in memory for repeated questions."""
 
-    def __init__(self):
-        self.retriever = Retriever()
+    def __init__(self, filter_filings: bool = False, search: str = "dense", rerank: bool = False):
+        """filter_filings: search only the filings of the companies and years the question names (retrieval/filters.py).
+        search: "dense" or "hybrid" (dense + BM25). rerank: re-order the top candidates with a cross-encoder."""
+        self.retriever = Retriever(mode=search, rerank=rerank)
+        self.filing_filter = FilingFilter(self.retriever.chunks) if filter_filings else None
         self.model, self.tokenizer = load(GEN_MODEL)
 
     def answer(self, question: str, verbose: bool = True) -> tuple[str, list[dict]]:
         """Retrieve evidence for the question and generate a cited answer; return the answer and the chunks used.
 
         verbose streams the answer and prints speed stats (on for the demo, off for evals)."""
-        chunks = self.retriever.search(question, k=TOP_K)
+        doc_names = self.filing_filter.infer(question) if self.filing_filter else None
+        chunks = self.retriever.search(question, k=TOP_K, doc_names=doc_names)
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": f"Excerpts:\n\n{format_context(chunks)}\n\nQuestion: {question}"},

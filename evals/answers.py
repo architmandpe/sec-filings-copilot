@@ -18,6 +18,7 @@ from evals.gold import gold_settings, load_chunks_by_doc
 from evals.retrieval import evidence_gold, retrieval_config
 from evals.runlog import fingerprint, git_state, model_revision, new_run_id, save_run
 from evals.split import load_questions, load_split
+from retrieval.search import SEARCH_MODES
 
 TYPES = ["text", "table", "computation", "multi_hop", "unanswerable"]
 REL_TOL, ABS_TOL = 0.01, 0.005  # 1% of the value, or half a unit in the 2nd decimal (for small ratios)
@@ -94,6 +95,10 @@ if __name__ == "__main__":
     parser.add_argument("--split", default="dev", choices=["dev", "test"])
     parser.add_argument("--note", default="", help="what this run changes, for the results log")
     parser.add_argument("--limit", type=int, help="answer only this many random questions (a quick test; not logged)")
+    parser.add_argument("--filter", default="none", choices=["none", "company_year"],
+                        help="company_year: search only the filings the question names (default: all chunks)")
+    parser.add_argument("--search", default="dense", choices=SEARCH_MODES, help="dense (baseline) or hybrid")
+    parser.add_argument("--rerank", action="store_true", help="re-order the top candidates with a cross-encoder")
     args = parser.parse_args()
 
     split = load_split()
@@ -101,7 +106,7 @@ if __name__ == "__main__":
     if args.limit:
         questions = random.Random(0).sample(questions, args.limit)
     by_doc = load_chunks_by_doc()
-    rag = RAG()
+    rag = RAG(filter_filings=args.filter == "company_year", search=args.search, rerank=args.rerank)
 
     details = []
     for i, q in enumerate(questions, 1):
@@ -136,7 +141,7 @@ if __name__ == "__main__":
         "fingerprint": fingerprint(questions, {
             "gold": gold_settings(),
             "scorer": {"rel_tol": REL_TOL, "abs_tol": ABS_TOL, "scales": SCALES, "refusal": REFUSAL}}),
-        "config": retrieval_config(rag.retriever) | {
+        "config": retrieval_config(rag.retriever) | {"filter": args.filter} | {
             "gen_model": GEN_MODEL, "gen_revision": model_revision(GEN_MODEL), "top_k": TOP_K,
             "max_tokens": MAX_TOKENS, "thinking": False,
             "system_prompt_sha": hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest()[:8]},
@@ -144,7 +149,8 @@ if __name__ == "__main__":
     }
     save_run(run, details, log=not args.limit)
 
-    print(f"\n{run['run_id']}  split={args.split}  commit={run['commit']}{' (dirty)' if run['dirty'] else ''}"
+    print(f"\n{run['run_id']}  split={args.split}  filter={args.filter}  search={args.search}"
+          f"{'  rerank' if args.rerank else ''}  commit={run['commit']}{' (dirty)' if run['dirty'] else ''}"
           f"{'  (limited run: not logged)' if args.limit else ''}")
     columns = {"n": "n", "accuracy": "acc", "accuracy_evidence_retrieved": "acc|found",
                "accuracy_evidence_missing": "acc|miss", "false_refusal_rate": "false_ref",
