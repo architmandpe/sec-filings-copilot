@@ -1,0 +1,52 @@
+# Test cases for the get_financial tool (agent/financials.py), from dev questions only.
+# expected: USD millions as stated in the gold answer or the filing text (never taken from XBRL, so the test is
+# not circular); tolerance: half a unit of the last stated digit, in millions (default 0.5).
+# expected: null = the right result is "not found" (the line item doesn't exist in that company's statements,
+# or only under a company-specific concept the tool can't know).
+
+- {id: fin-01, question: own-001, company: Apple, metric: revenue, fiscal_year: 2024, expected: 391035}
+- {id: fin-02, question: own-002, company: Apple, metric: gross_profit, fiscal_year: 2024, expected: 180683}
+- {id: fin-03, question: own-003, company: Apple, metric: research_and_development, fiscal_year: 2023, expected: 29915}
+- {id: fin-04, question: own-003, company: Microsoft, metric: research_and_development, fiscal_year: 2023, expected: 27195}
+- {id: fin-05, question: own-006, company: Microsoft, metric: revenue, fiscal_year: 2023, expected: 211915}
+- {id: fin-06, question: own-012, company: Netflix, metric: revenue, fiscal_year: 2017, expected: 11692.713, tolerance: 0.0005}
+- {id: fin-07, question: own-015, company: Best Buy, metric: revenue, fiscal_year: 2023, expected: 46298}
+- {id: fin-08, question: own-016, company: Pfizer, metric: revenue, fiscal_year: 2021, expected: 81288}
+- {id: fin-09, question: own-017, company: Johnson & Johnson, metric: revenue, fiscal_year: 2022, expected: 94943,
+   note: "as reported; restated to 79,990 after the 2023 Kenvue separation"}
+- {id: fin-10, question: own-021, company: Kraft Heinz, metric: revenue, fiscal_year: 2019, expected: 24977}
+- {id: fin-11, question: own-022, company: Activision Blizzard, metric: revenue, fiscal_year: 2019, expected: 6489}
+- {id: fin-12, question: own-025, company: Microsoft, metric: operating_income, fiscal_year: 2023, expected: 88523}
+- {id: fin-13, question: own-026, company: Microsoft, metric: net_income, fiscal_year: 2023, expected: 72361}
+- {id: fin-14, question: own-029, company: Coca-Cola, metric: revenue, fiscal_year: 2022, expected: 43004}
+- {id: fin-15, question: own-029, company: Coca-Cola, metric: revenue, fiscal_year: 2021, expected: 38655}
+- {id: fin-16, question: own-030, company: PepsiCo, metric: operating_income, fiscal_year: 2022, expected: 11512}
+- {id: fin-17, question: own-030, company: PepsiCo, metric: revenue, fiscal_year: 2022, expected: 86392}
+- {id: fin-18, question: own-035, company: Best Buy, metric: gross_profit, fiscal_year: 2023, expected: 9912}
+- {id: fin-19, question: own-036, company: Pfizer, metric: net_income, fiscal_year: 2021, expected: 21979}
+- {id: fin-20, question: own-040, company: Apple, metric: net_income, fiscal_year: 2025, expected: 112010}
+- {id: fin-21, question: own-040, company: Apple, metric: revenue, fiscal_year: 2025, expected: 416161}
+- {id: fin-22, question: own-041, company: Corning, metric: gross_profit, fiscal_year: 2022, expected: 4506}
+- {id: fin-23, question: own-041, company: Corning, metric: revenue, fiscal_year: 2022, expected: 14189}
+- {id: fin-24, question: own-042, company: 3M, metric: revenue, fiscal_year: 2022, expected: 34229,
+   note: "as reported; restated to 26,161 after the 2024 Solventum spin-off"}
+- {id: fin-25, question: own-042, company: 3M, metric: research_and_development, fiscal_year: 2022, expected: 1100, tolerance: 50,
+   note: "filing text: 'Research and development expenses ... totaled $1.1 billion'. The income-statement line own-042 asks for,
+   'research, development and related expenses' (1,862), is a broader company-specific concept: that question needs text search.
+   First written as expected null (no standard R&D figure); corrected after reading the filing"}
+- {id: fin-26, question: own-045, company: Coca-Cola, metric: operating_income, fiscal_year: 2022, expected: 10909}
+- {id: fin-27, question: own-046, company: Apple, metric: revenue, fiscal_year: 2023, expected: 383285}
+- {id: fin-28, question: own-054, company: Netflix, metric: revenue, fiscal_year: 2015, expected: 6779.511, tolerance: 0.0005}
+- {id: fin-29, question: own-055, company: Microsoft, metric: revenue, fiscal_year: 2016, expected: 85320}
+- {id: fin-30, question: own-056, company: CVS Health, metric: revenue, fiscal_year: 2018, expected: 194579}
+- {id: fin-31, question: own-056, company: CVS Health, metric: revenue, fiscal_year: 2022, expected: 322467}
+- {id: fin-32, question: fb-03029, company: 3M, metric: capex, fiscal_year: 2018, expected: 1577}
+- {id: fin-33, question: fb-04672, company: 3M, metric: ppe_net, fiscal_year: 2018, expected: 8738,
+   note: "FinanceBench gold says 8.70 billion; the filing's balance sheet shows 8,738 million"}
+- {id: fin-34, question: fb-03882, company: Amcor, metric: accounts_receivable, fiscal_year: 2020, expected: 1616}
+- {id: fin-35, question: fb-04417, company: Best Buy, metric: inventory, fiscal_year: 2019, expected: 5409}
+- {id: fin-36, question: fb-04700, company: Microsoft, metric: cost_of_revenue, fiscal_year: 2016, expected: 32780}
+- {id: fin-37, question: fb-03282, company: Netflix, metric: current_liabilities, fiscal_year: 2017, expected: 5466.312, tolerance: 0.0005}
+- {id: fin-38, question: fb-04980, company: PepsiCo, metric: capex, fiscal_year: 2021, expected: 4600, tolerance: 50}
+- {id: fin-39, question: none (negative control), company: Johnson & Johnson, metric: operating_income, fiscal_year: 2022, expected: null,
+   note: "J&J's income statement has no operating income line"}
