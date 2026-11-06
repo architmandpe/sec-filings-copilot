@@ -8,6 +8,7 @@ retrieval found its evidence, to separate retrieval failures from generation fai
 
 import argparse
 import hashlib
+import json
 import random
 import re
 import time
@@ -26,6 +27,7 @@ SCALES = (1, 1e3, 1e-3, 100, 0.01)  # million <-> billion/thousand, fraction <->
 CITATION = re.compile(r"\[([^\[\]]+)\]")
 # A chunk ID: <doc_name>-<item>-<nnn>, e.g. 3M_2018_10K-7-065, JOHNSON_JOHNSON_2022_10K-8-002, CVSHEALTH_2018_10K-EX-13.1-007
 CHUNK_ID = re.compile(r"[A-Za-z0-9&_]+_\d{4}(?:Q\d)?_10[KQ]-[A-Za-z0-9.-]+-\d{3}")
+FACT_ID = re.compile(r"XBRL_[A-Za-z0-9]+_\d{4}_[a-z_]+")  # an XBRL fact returned by the agent's get_financial tool
 NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?")
 # chunk fields saved with each cited chunk: what the judge and the label sheet show (format_context needs them all)
 SAVED_CHUNK_FIELDS = ("id", "company", "form", "fiscal_year", "fiscal_period", "item", "title", "text")
@@ -42,7 +44,7 @@ def citations(text: str) -> list[str]:
     Bracketed text that isn't shaped like a chunk ID (e.g. "[Calculated as revenue - gross margin]") is the model's
     working, not a citation, so it is ignored rather than counted as an invalid citation."""
     return [cid.strip() for group in CITATION.findall(text) for cid in group.split(",")
-            if CHUNK_ID.fullmatch(cid.strip())]
+            if CHUNK_ID.fullmatch(cid.strip()) or FACT_ID.fullmatch(cid.strip())]
 
 
 def numbers(text: str) -> list[float]:
@@ -107,14 +109,23 @@ if __name__ == "__main__":
                         help="company_year: search only the filings the question names (default: all chunks)")
     parser.add_argument("--search", default="dense", choices=SEARCH_MODES, help="dense (baseline) or hybrid")
     parser.add_argument("--rerank", action="store_true", help="re-order the top candidates with a cross-encoder")
+    parser.add_argument("--agent", action="store_true",
+                        help="tool-using agent (agent/loop.py) instead of single-shot RAG; uses the --search and "
+                             "--rerank settings for its search tool, always with the company/year filter")
     args = parser.parse_args()
+    if args.agent:
+        args.filter = "company_year"  # the agent's search tool always filters by the companies/years it names
 
     split = load_split()
     questions = [q for q in load_questions() if split[q["id"]] == args.split]
     if args.limit:
         questions = random.Random(0).sample(questions, args.limit)
     by_doc = load_chunks_by_doc()
-    rag = RAG(filter_filings=args.filter == "company_year", search=args.search, rerank=args.rerank)
+    if args.agent:
+        from agent.loop import MAX_NUDGES, MAX_STEPS, STEP_TOKENS, TOOLS, Agent
+        rag = Agent(search=args.search, rerank=args.rerank)
+    else:
+        rag = RAG(filter_filings=args.filter == "company_year", search=args.search, rerank=args.rerank)
 
     details = []
     for i, q in enumerate(questions, 1):
@@ -134,6 +145,8 @@ if __name__ == "__main__":
             "cited_chunks": {c["id"]: {k: c[k] for k in SAVED_CHUNK_FIELDS} for c in chunks if c["id"] in cited},
             "seconds": round(time.perf_counter() - start, 1),
         }
+        if args.agent:
+            row["trace"] = rag.trace  # every tool call and nudge, for error analysis
         details.append(row)
         status = "refused" if row["refused"] else {True: "correct", False: "wrong", None: "unscored"}[row["correct"]]
         print(f"{i:>3}/{len(questions)}  {q['id']:<10} {q['type']:<12} {status:<9} {row['seconds']:>5.1f}s")
@@ -158,10 +171,14 @@ if __name__ == "__main__":
             "system_prompt_sha": hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest()[:8]},
         "metrics": metrics,
     }
+    if args.agent:  # the agent has its own prompt, tools and limits
+        run["config"] |= {"agent": True, "max_steps": MAX_STEPS, "step_tokens": STEP_TOKENS, "max_nudges": MAX_NUDGES,
+                          "max_tokens": None, "system_prompt_sha": hashlib.sha256(
+                              (rag.system + json.dumps(TOOLS)).encode()).hexdigest()[:8]}
     save_run(run, details, log=not args.limit)
 
     print(f"\n{run['run_id']}  split={args.split}  filter={args.filter}  search={args.search}"
-          f"{'  rerank' if args.rerank else ''}  commit={run['commit']}{' (dirty)' if run['dirty'] else ''}"
+          f"{'  rerank' if args.rerank else ''}{'  AGENT' if args.agent else ''}  commit={run['commit']}{' (dirty)' if run['dirty'] else ''}"
           f"{'  (limited run: not logged)' if args.limit else ''}")
     columns = {"n": "n", "accuracy": "acc", "accuracy_evidence_retrieved": "acc|found",
                "accuracy_evidence_missing": "acc|miss", "false_refusal_rate": "false_ref",
