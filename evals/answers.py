@@ -24,6 +24,8 @@ TYPES = ["text", "table", "computation", "multi_hop", "unanswerable"]
 REL_TOL, ABS_TOL = 0.01, 0.005  # 1% of the value, or half a unit in the 2nd decimal (for small ratios)
 SCALES = (1, 1e3, 1e-3, 100, 0.01)  # million <-> billion/thousand, fraction <-> percent
 CITATION = re.compile(r"\[([^\[\]]+)\]")
+# A chunk ID: <doc_name>-<item>-<nnn>, e.g. 3M_2018_10K-7-065, JOHNSON_JOHNSON_2022_10K-8-002, CVSHEALTH_2018_10K-EX-13.1-007
+CHUNK_ID = re.compile(r"[A-Za-z0-9&_]+_\d{4}(?:Q\d)?_10[KQ]-[A-Za-z0-9.-]+-\d{3}")
 NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?")
 
 
@@ -33,8 +35,12 @@ def is_refusal(text: str) -> bool:
 
 
 def citations(text: str) -> list[str]:
-    """Chunk IDs cited in square brackets; "[A, B]" counts as two citations."""
-    return [cid.strip() for group in CITATION.findall(text) for cid in group.split(",") if cid.strip()]
+    """Chunk IDs cited in square brackets; "[A, B]" counts as two citations.
+
+    Bracketed text that isn't shaped like a chunk ID (e.g. "[Calculated as revenue - gross margin]") is the model's
+    working, not a citation, so it is ignored rather than counted as an invalid citation."""
+    return [cid.strip() for group in CITATION.findall(text) for cid in group.split(",")
+            if CHUNK_ID.fullmatch(cid.strip())]
 
 
 def numbers(text: str) -> list[float]:
