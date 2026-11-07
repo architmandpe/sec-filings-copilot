@@ -42,7 +42,10 @@ METRICS = {
                                            "DepreciationAmortizationAndAccretionNet", "DepreciationAndAmortization"],
                                   "depreciation and amortization (cash flow statement)"),
     "operating_cash_flow": ("flow", ["NetCashProvidedByUsedInOperatingActivities"], "cash from operating activities"),
-    "capex": ("flow", ["PaymentsToAcquirePropertyPlantAndEquipment", "PaymentsToAcquireProductiveAssets"],
+    # PaymentsToAcquireOtherProductiveAssets last: Verizon's only capex concept since FY2019, but a small component
+    # of its capex before 2015 (2009: 5,958 of 16,872), so it must never win over a total
+    "capex": ("flow", ["PaymentsToAcquirePropertyPlantAndEquipment", "PaymentsToAcquireProductiveAssets",
+                       "PaymentsToAcquireOtherProductiveAssets"],
               "capital expenditures (purchases of property, plant and equipment)"),
     "dividends_paid": ("flow", ["PaymentsOfDividends", "PaymentsOfDividendsCommonStock"], "cash dividends paid"),
     "cash": ("balance", ["CashAndCashEquivalentsAtCarryingValue"], "cash and cash equivalents"),

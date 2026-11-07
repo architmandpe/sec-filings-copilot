@@ -50,3 +50,6 @@
 - {id: fin-38, question: fb-04980, company: PepsiCo, metric: capex, fiscal_year: 2021, expected: 4600, tolerance: 50}
 - {id: fin-39, question: none (negative control), company: Johnson & Johnson, metric: operating_income, fiscal_year: 2022, expected: null,
    note: "J&J's income statement has no operating income line"}
+- {id: fin-40, question: fb-00215, company: Verizon, metric: capex, fiscal_year: 2022, expected: 23087,
+   note: "filing: 'Capital expenditures (including capitalized software) | (23,087)'; tagged PaymentsToAcquireOtherProductiveAssets.
+   Missing from the concept list in agent run 20261107-000812 (the tool said not found and the agent refused)"}
