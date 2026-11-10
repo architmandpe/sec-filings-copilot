@@ -61,6 +61,7 @@ uv run python -m retrieval.search  # show the top chunks for sample questions
 uv run python -m agent.answer      # retrieve and answer sample questions with citations
 uv run python app.py               # web demo at http://127.0.0.1:7860: retrieved passages + streamed cited answer
                                    # (filter + hybrid + reranker; without MLX, e.g. on Linux, retrieval only)
+uv run python demo_agent.py        # agent demo at http://127.0.0.1:7860: live tool calls and checks, cited answer (Apple silicon only)
 streamlit run deploy/streamlit/streamlit_app.py  # the hosted retrieval-only demo (index downloaded from Hugging Face)
 ```
 
