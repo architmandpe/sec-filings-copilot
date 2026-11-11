@@ -26,14 +26,13 @@ from pathlib import Path
 from mlx_lm import generate, load
 
 from agent.answer import format_context
-from evals.label_sheet import LABELS_PATH
+from evals.label_sheet import labels_path
 from evals.runlog import (checkpoint_path, cited_chunks, model_revision, resume_checkpoint, run_path,
                           save_checkpoint_row, save_run, start_checkpoint)
 from retrieval.index import INDEX_DIR
 
 JUDGE_MODEL = "mlx-community/gemma-4-12B-it-qat-4bit"
 CACHE_PATH = Path("data/evals/judge_cache.jsonl")  # one line per verdict: input hash -> verdict and reply
-LABELED_RUN = "20261104-233612-answers"  # the run evals/judge_labels.csv grades; agreement is valid only for it
 CORRECT_MAX_TOKENS = 300
 FAITHFUL_MAX_TOKENS = 1200  # room for one line per claim; at 800, 2 of 41 replies were cut off before the verdict
 VERDICT = re.compile(r"VERDICT:\s*\**\s*([yn])\b", re.IGNORECASE)
@@ -137,6 +136,8 @@ if __name__ == "__main__":
     parser.add_argument("--judge-numbers", action="store_true",
                         help="also judge correctness of numeric answers (default: use the automatic scorer)")
     parser.add_argument("--resume", metavar="RUN_ID", help="continue an interrupted judge run with its settings")
+    parser.add_argument("--labeled-only", action="store_true",
+                        help="judge only the answers that have labels for this run (to validate the judge first)")
     args = parser.parse_args()
     if args.resume:
         settings, git, done = resume_checkpoint(args.resume)
@@ -148,6 +149,12 @@ if __name__ == "__main__":
 
     with open(run_path(args.run)) as f:
         answered = [r for r in map(json.loads, f) if not r["refused"]]  # refusals are scored without a judge
+    labels = {}  # labels grade one specific run's answers, so they are looked up by run
+    if Path(labels_path(args.run)).exists():
+        with open(labels_path(args.run), newline="") as f:
+            labels = {row["id"]: row for row in csv.DictReader(f) if row["correct"] and row["faithful"]}
+    if args.labeled_only:
+        answered = [r for r in answered if r["id"] in labels]
     if args.limit:
         answered = random.Random(0).sample(answered, args.limit)
     with open(INDEX_DIR / "chunks.jsonl") as f:
@@ -181,10 +188,6 @@ if __name__ == "__main__":
         print(f"{i:>3}/{len(answered)}  {r['id']:<10} correct={correct}  faithful={faithful}  {details[-1]['seconds']:>5.1f}s",
               flush=True)
 
-    labels = {}
-    if Path(LABELS_PATH).exists() and args.run == LABELED_RUN:  # the labels grade that run's answers only
-        with open(LABELS_PATH, newline="") as f:
-            labels = {row["id"]: row for row in csv.DictReader(f) if row["correct"] and row["faithful"]}
     def counted(d, name):
         """An unparsed verdict counts as "n" (fail closed: the judge did not confirm it). Details keep the raw None."""
         return d[name] or "n"

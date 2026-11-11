@@ -1,0 +1,26 @@
+id,type,answer_kind,auto_correct,correct,faithful,note,question
+fb-04672,table,number,y,y,y,"8.74B from fact 8,738M; gold 8.70 is a documented rounding slip in the label",Assume that you are a public equities analyst. Answer the following question by primarily using info
+fb-01865,text,text,,n,n,"says Health Care; gold Consumer. Cited chunk shows Health Care organic sales +3.2%, so 'dragged down growth excluding M&A' is not stated (contradicted)","If we exclude the impact of M&A, which segment has dragged down 3M's overall growth in 2022?"
+fb-00684,computation,yes_no,n,n,y,"gives FY2023 margin 18.55% (CALC, right inputs) but never answers whether it improved",Does AMCOR have an improving gross margin profile as of FY2023? If gross margin is not a useful metr
+fb-02608,computation,number,y,y,y,CALC with Best Buy FY2015-17 net income and revenue,"In agreement with the information outlined in the income statement, what is the FY2015 - FY2017 3 ye"
+fb-02981,computation,number,y,y,y,CALC with Corning FY2019-21 operating income and revenue,"Taking into account the information outlined in the income statement, what is the FY2019 - FY2021 3 "
+fb-01346,computation,text,,y,y,"20.5% (2021 10-K) and 23% (2022 10-K), +2.5 pp; gold 20% is the 2022 10-K's rounded 20.5%",How much has the effective tax rate of Corning changed between FY2021 and FY2022?
+fb-01244,text,yes_no,n,n,y,"annual dividends $2,907M supported; does not answer the Q2 question",Has CVS Health paid dividends to common shareholders in Q2 of FY2022?
+fb-03471,computation,number,y,y,y,"0.68 = 5,121.3 / 7,491.5, inputs cited, arithmetic right (no CALC cited)","By drawing conclusions from the information stated only in the statement of financial position, what"
+fb-04700,table,number,y,y,y,,What is the FY2016 COGS for Microsoft? Please state answer in USD millions. Provide a response to th
+fb-00552,computation,yes_no,n,n,y,"reports total liabilities rising (supported) instead of debt; implies an increase, gold says debt decreased",Has Microsoft increased its debt on balance sheet between FY2023 and the FY2022 period?
+fb-03620,computation,number,y,y,y,"11,512 + 2,763 - 5,207 = 9,068; inputs cited",What is the FY2022 unadjusted EBITDA less capex for PepsiCo? Define unadjusted EBITDA as unadjusted 
+fb-00302,text,yes_no,n,y,y,implicit yes ('grew'),Did Pfizer grow its PPNE between FY20 and FY21?
+fb-00702,text,yes_no,n,n,n,"GUIDE AMBIGUITY: claims filings don't mention such events, but cited PFIZER_2021_10K-8-013 shows the 2019 gain on the Consumer Healthcare JV ($8,254M); labeled n because it contradicts its own source",Were there any potential events that are not in Pfizer's standard business operations that substanti
+fb-00215,computation,yes_no,n,y,y,conclusion yes matches; capex/total assets 6.08% (CALC) instead of gold's assets/revenue; conclusion drawn from cited facts (same rule as Week 2 labels),Is Verizon a capital intensive business based on FY 2022 data?
+fb-00566,computation,yes_no,n,y,n,"no, debt decreased: matches gold; but 150.9B -> 150.6B is not in the cited chunk (it shows average debt 151,226 / 147,035)",Has Verizon increased its debt on balance sheet between 2022 and the 2021 fiscal period?
+own-003,multi_hop,number,y,y,y,"2,720 = 29,915 - 27,195, inputs cited","Which company spent more on research and development in fiscal 2023, Apple or Microsoft, and by how "
+own-021,table,number,y,y,y,,What were Kraft Heinz's net sales in 2019?
+own-022,table,number,y,y,y,,What were Activision Blizzard's total net revenues in 2019?
+own-026,computation,number,y,y,y,,What was Microsoft's net income as a percentage of revenue in fiscal 2023?
+own-040,computation,number,y,y,y,,What was Apple's net income as a percentage of total net sales in fiscal 2025?
+own-054,multi_hop,number,y,y,y,,By what percentage did Netflix's revenues grow from 2015 to 2017?
+own-058,text,number,y,y,y,,"Approximately how many full-time employees did Microsoft have as of June 30, 2023?"
+own-067,text,text,,y,y,,"Which firm audited Apple's fiscal 2024 financial statements, and since when?"
+own-068,text,number,y,y,n,1921 is not in the cited chunk (it ends before the 'served as auditor since' sentence),"Since what year has Ernst & Young served as Coca-Cola's auditor, according to its 2022 10-K?"
+own-090,unanswerable,refuse,,y,y,"content matches the gold (units not disclosed, net sales $201,183M cited) but it is not the refusal sentence the scorer requires",How many iPhones did Apple sell in fiscal 2024?
