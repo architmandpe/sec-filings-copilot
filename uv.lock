@@ -185,6 +185,7 @@ dependencies = [
     { name = "beautifulsoup4" },
     { name = "datasets" },
     { name = "duckdb" },
+    { name = "fastapi" },
     { name = "gradio" },
     { name = "mlx-lm" },
     { name = "numpy" },
@@ -193,6 +194,7 @@ dependencies = [
     { name = "pyyaml" },
     { name = "requests" },
     { name = "sentence-transformers" },
+    { name = "uvicorn" },
 ]
 
 [package.metadata]
@@ -200,6 +202,7 @@ requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.15.0" },
     { name = "datasets", specifier = ">=5.1.0" },
     { name = "duckdb", specifier = ">=2.0.0" },
+    { name = "fastapi", specifier = ">=0.162.0" },
     { name = "gradio", specifier = ">=6.31.0" },
     { name = "mlx-lm", specifier = ">=0.32.2" },
     { name = "numpy", specifier = ">=2.5.4" },
@@ -208,6 +211,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "requests", specifier = ">=2.34.2" },
     { name = "sentence-transformers", specifier = ">=6.2.0" },
+    { name = "uvicorn", specifier = ">=0.54.0" },
 ]
 
 [[package]]

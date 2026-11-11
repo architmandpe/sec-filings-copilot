@@ -196,10 +196,18 @@ class Agent:
             return "nudge_unsupported_numbers", UNSUPPORTED_NUDGE.format(numbers=", ".join(missing))
         return None
 
-    def answer(self, question: str, verbose: bool = False) -> tuple[str, list[dict]]:
-        """Run the loop; return the final answer and every source the tools returned (same shape as RAG.answer)."""
+    def answer(self, question: str, verbose: bool = False, on_step=None) -> tuple[str, list[dict]]:
+        """Run the loop; return the final answer and every source the tools returned (same shape as RAG.answer).
+
+        on_step: optional function called with each trace entry as soon as it happens (the API streams them)."""
         messages = [{"role": "system", "content": self.system}, {"role": "user", "content": question}]
         sources, self.trace, nudges = {}, [], 0
+
+        def record(entry: dict) -> None:
+            self.trace.append(entry)
+            if on_step is not None:
+                on_step(entry)
+
         for step in range(MAX_STEPS):
             reply = self.generate(messages)
             calls = TOOL_CALL.findall(reply)
@@ -209,7 +217,7 @@ class Agent:
                     return reply.strip(), list(sources.values())
                 nudges += 1
                 messages += [{"role": "assistant", "content": reply.strip()}, {"role": "user", "content": nudge[1]}]
-                self.trace.append({"step": step, "tool": nudge[0], "arguments": {}, "output": reply[:300]})
+                record({"step": step, "tool": nudge[0], "arguments": {}, "output": reply[:300]})
                 if verbose:
                     print(f"  [{step}] {nudge[0]}: {nudge[1][:120]!r}")
                 continue
@@ -227,13 +235,13 @@ class Agent:
                 output = (f"Error: could not parse the tool call {args['raw']!r} as JSON" if name == "invalid"
                           else self.run_tool(name, args, question, sources))
                 messages.append({"role": "tool", "content": output})
-                self.trace.append({"step": step, "tool": name, "arguments": args, "output": output[:300]})
+                record({"step": step, "tool": name, "arguments": args, "output": output[:300]})
                 if verbose:
                     print(f"  [{step}] {name}({json.dumps(args)}) -> {output[:150]!r}")
         # step limit reached: ask for the answer from what has been gathered, without further tools
         messages.append({"role": "user", "content": "Give your final answer now from the tool results above."})
         reply = self.generate(messages)
-        self.trace.append({"step": MAX_STEPS, "tool": "step_limit", "arguments": {}, "output": ""})
+        record({"step": MAX_STEPS, "tool": "step_limit", "arguments": {}, "output": ""})
         return TOOL_CALL.sub("", reply).strip(), list(sources.values())
 
 
