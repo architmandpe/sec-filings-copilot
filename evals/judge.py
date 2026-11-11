@@ -136,6 +136,8 @@ if __name__ == "__main__":
     parser.add_argument("--judge-numbers", action="store_true",
                         help="also judge correctness of numeric answers (default: use the automatic scorer)")
     parser.add_argument("--resume", metavar="RUN_ID", help="continue an interrupted judge run with its settings")
+    parser.add_argument("--correct-only", action="store_true",
+                        help="skip faithfulness (it failed validation on agent answers: 20261111-173247-judge)")
     parser.add_argument("--labeled-only", action="store_true",
                         help="judge only the answers that have labels for this run (to validate the judge first)")
     args = parser.parse_args()
@@ -174,7 +176,9 @@ if __name__ == "__main__":
                 CORRECT_PROMPT.format(question=r["question"], gold=r["gold_answer"], answer=r["answer"]),
                 CORRECT_MAX_TOKENS)
         cited = cited_chunks(r, chunks)
-        if cited:
+        if args.correct_only:
+            faithful, faithful_reply = None, "not judged (--correct-only)"
+        elif cited:
             faithful, faithful_reply = judge.verdict(
                 FAITHFUL_PROMPT.format(question=r["question"], answer=r["answer"], excerpts=format_context(cited)),
                 FAITHFUL_MAX_TOKENS)
@@ -193,7 +197,8 @@ if __name__ == "__main__":
         return d[name] or "n"
 
     metrics = {}
-    for name in ("correct", "faithful"):
+    criteria = ("correct",) if args.correct_only else ("correct", "faithful")
+    for name in criteria:
         metrics[f"{name}_rate"] = round(sum(counted(d, name) == "y" for d in details) / len(details), 3) if details else None
         metrics[f"{name}_unparsed"] = sum(d[name] is None for d in details)
         pairs = [(counted(d, name), labels[d["id"]][name]) for d in details if d["id"] in labels]
@@ -209,6 +214,7 @@ if __name__ == "__main__":
         "run_id": run_id, "stage": "judge", "source_run": args.run, "limit": args.limit, **git,
         "config": {"judge_model": args.model, "judge_revision": model_revision(args.model),
                    "numeric_correctness": "judge" if args.judge_numbers else "automatic scorer",
+                   "criteria": list(criteria),
                    "max_tokens": {"correct": CORRECT_MAX_TOKENS, "faithful": FAITHFUL_MAX_TOKENS},
                    "prompts_sha": prompts_sha},
         "metrics": metrics,
@@ -218,7 +224,7 @@ if __name__ == "__main__":
 
     print(f"\n{run['run_id']}  judged {args.run}  judge={args.model}  cached verdicts reused: {judge.hits}"
           f"{'  (limited run: not logged)' if args.limit else ''}")
-    for name in ("correct", "faithful"):
+    for name in criteria:
         print(f"\n{name}: judge says y for {metrics[f'{name}_rate']}, unparsed {metrics[f'{name}_unparsed']} (counted as n)")
         for key in (f"{name}_vs_labels", "correct_vs_labels_text_only" if name == "correct" else None):
             if key in metrics:
