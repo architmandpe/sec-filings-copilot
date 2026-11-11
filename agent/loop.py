@@ -105,7 +105,8 @@ def input_sources(expression: str, sources: dict[str, dict]) -> str:
     equals a number in an XBRL fact or earlier calculation, so citing the calculation also shows its inputs' sources."""
     from evals.answers import NUMBER
     lines = []
-    for raw in dict.fromkeys(NUMBER.findall(expression)):
+    # expressions have no thousands separators (calculate rejects them), so "avg(100,200)" is two numbers, not 100200
+    for raw in dict.fromkeys(re.findall(r"\d+(?:\.\d+)?", expression)):
         value = float(raw.replace(",", ""))
         for sid, source in sources.items():
             if source["form"] not in ("XBRL", "calculation"):
