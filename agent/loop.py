@@ -24,7 +24,11 @@ from retrieval.filters import FilingFilter
 from retrieval.search import Retriever
 
 NO_TOOL_NUDGE = ("You have not used any tool yet. Call search_filings or get_financial first, then answer from "
-                 "what they return.")
+                 "what they return. If they don't answer the question, reply with exactly: \"{refusal}\" followed by "
+                 "one sentence saying what is missing.")
+FILING_NUDGE = ("The question asks about the {year} filing, but your sources are from fiscal {found}, and the {year} "
+                "filing is not in the collection. Unless your sources state what the question asks about {year}, "
+                "reply with exactly: \"{refusal}\" followed by one sentence saying what is missing.")
 NO_CITATION_NUDGE = ("Your reply has no citation. If you still need data, call the tool now; otherwise give the "
                      "final answer citing IDs in square brackets.")
 UNSUPPORTED_NUDGE = ("These numbers are not in any tool result: {numbers}. Compute them with calculate (or fetch them "
@@ -33,6 +37,8 @@ MAX_NUDGES = 2  # send-backs per question, so a stubborn model can't loop
 MAX_STEPS = 6  # model turns; a question needing more tool rounds than this is answered with what it has
 STEP_TOKENS = 512  # tokens per model turn
 TOOL_CALL = re.compile(r"<tool_call>\s*(.*?)\s*</tool_call>", re.DOTALL)
+# a question about one specific filing: "its 2019 10-K", "fiscal 2020 10-K", "FY2022 annual report"
+NAMED_FILING = re.compile(r"(?:fiscal\s+|FY\s?)?(20\d\d)\s+(?:annual report|form 10-K|10-K|10-Q)", re.IGNORECASE)
 
 TOOLS = [
     {"type": "function", "function": {
@@ -94,6 +100,25 @@ def unsupported_numbers(answer: str, evidence: str) -> list[str]:
     return missing
 
 
+def input_sources(expression: str, sources: dict[str, dict]) -> str:
+    """Where the numbers in a calculation came from: lines "6489 = [XBRL_..._revenue] <fact>" for every input that
+    equals a number in an XBRL fact or earlier calculation, so citing the calculation also shows its inputs' sources."""
+    from evals.answers import NUMBER
+    lines = []
+    for raw in dict.fromkeys(NUMBER.findall(expression)):
+        value = float(raw.replace(",", ""))
+        for sid, source in sources.items():
+            if source["form"] not in ("XBRL", "calculation"):
+                continue
+            first = source["text"].splitlines()[0]
+            # only the value, not dates or accession numbers: "...: $6,489 million (2019-01-01 ..." / "... = 24.2579"
+            shown = first.split(" = ")[-1] if source["form"] == "calculation" else first.split(": ", 1)[-1].split(" (")[0]
+            if any(abs(float(n.replace(",", "")) - value) < 1e-9 for n in NUMBER.findall(shown)):
+                lines.append(f"{raw} = [{sid}] {source['text'].splitlines()[0]}")
+                break
+    return "".join(f"\n  {line}" for line in lines)
+
+
 def fact_id(result: dict) -> str:
     """Citable ID for an XBRL fact, e.g. XBRL_JohnsonJohnson_2022_revenue."""
     return f"XBRL_{re.sub(r'[^A-Za-z0-9]', '', result['company'])}_{result['fiscal_year']}_{result['metric']}"
@@ -132,7 +157,14 @@ class Agent:
             return f"[{fid}] {describe(result)}"
         if name == "calculate":
             result = calculate(str(args.get("expression", "")))
-            return f"= {result['value']:.6g}" if "value" in result else f"Error: {result['error']}"
+            if "error" in result:
+                return f"Error: {result['error']}"
+            # a citable source, like an XBRL fact, so a computed number in the answer can be checked against it
+            cid = f"CALC-{sum(1 for k in sources if k.startswith('CALC-')) + 1}"
+            text = f"{result['expression']} = {result['value']:.6g}" + input_sources(result["expression"], sources)
+            sources[cid] = {"id": cid, "company": "", "form": "calculation", "fiscal_year": "", "fiscal_period": "",
+                            "item": "-", "title": "calculator", "text": text}
+            return f"[{cid}] {text}"
         return f"Error: unknown tool {name!r}; use get_financial, search_filings or calculate"
 
     def generate(self, messages: list[dict]) -> str:
@@ -141,16 +173,23 @@ class Agent:
                                                     enable_thinking=False)
         return generate(self.model, self.tokenizer, prompt=prompt, max_tokens=STEP_TOKENS)
 
-    def check_final(self, reply: str, question: str, messages: list[dict]) -> tuple[str, str] | None:
+    def check_final(self, reply: str, question: str, messages: list[dict],
+                    sources: dict[str, dict]) -> tuple[str, str] | None:
         """A reason to send a would-be final answer back (name, message to the model), or None to accept it."""
         from evals.answers import citations, is_refusal
         tool_outputs = [m["content"] for m in messages if m["role"] == "tool"]
         if not tool_outputs:
-            return "nudge_no_tool", NO_TOOL_NUDGE
+            return "nudge_no_tool", NO_TOOL_NUDGE.format(refusal=REFUSAL)
         if is_refusal(reply):
             return None
-        if not citations(reply):
+        cited = citations(reply)
+        if not cited:
             return "nudge_no_citation", NO_CITATION_NUDGE
+        named = NAMED_FILING.search(question)
+        passages = [sources[c] for c in cited if c in sources and sources[c]["form"] in ("10-K", "10-Q")]
+        if named and passages and all(str(p["fiscal_year"]) != named.group(1) for p in passages):
+            found = ", ".join(sorted({str(p["fiscal_year"]) for p in passages}))
+            return "nudge_filing_year", FILING_NUDGE.format(year=named.group(1), found=found, refusal=REFUSAL)
         missing = unsupported_numbers(reply, "\n".join(tool_outputs + [question]))
         if missing:
             return "nudge_unsupported_numbers", UNSUPPORTED_NUDGE.format(numbers=", ".join(missing))
@@ -164,7 +203,7 @@ class Agent:
             reply = self.generate(messages)
             calls = TOOL_CALL.findall(reply)
             if not calls:
-                nudge = self.check_final(reply, question, messages) if nudges < MAX_NUDGES else None
+                nudge = self.check_final(reply, question, messages, sources) if nudges < MAX_NUDGES else None
                 if nudge is None:
                     return reply.strip(), list(sources.values())
                 nudges += 1

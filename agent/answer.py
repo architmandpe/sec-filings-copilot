@@ -24,6 +24,7 @@ Rules:
 def format_context(chunks: list[dict]) -> str:
     """Label each chunk with its ID and source so the model can cite it."""
     return "\n\n".join(
+        f"[{c['id']}] (calculator result)\n{c['text']}" if c["form"] == "calculation" else
         f"[{c['id']}] ({c['company']} {c['form']} FY{c['fiscal_year']} {c['fiscal_period']}, Item {c['item']}: {c['title']})\n{c['text']}"
         for c in chunks
     )

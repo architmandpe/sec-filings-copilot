@@ -17,7 +17,8 @@ from collections import defaultdict
 from agent.answer import GEN_MODEL, MAX_TOKENS, REFUSAL, RAG, SYSTEM_PROMPT, TOP_K
 from evals.gold import gold_settings, load_chunks_by_doc
 from evals.retrieval import evidence_gold, retrieval_config
-from evals.runlog import fingerprint, git_state, model_revision, new_run_id, save_run
+from evals.runlog import (checkpoint_path, fingerprint, model_revision, resume_checkpoint, save_checkpoint_row,
+                          save_run, start_checkpoint)
 from evals.split import load_questions, load_split
 from retrieval.search import SEARCH_MODES
 
@@ -28,6 +29,7 @@ CITATION = re.compile(r"\[([^\[\]]+)\]")
 # A chunk ID: <doc_name>-<item>-<nnn>, e.g. 3M_2018_10K-7-065, JOHNSON_JOHNSON_2022_10K-8-002, CVSHEALTH_2018_10K-EX-13.1-007
 CHUNK_ID = re.compile(r"[A-Za-z0-9&_]+_\d{4}(?:Q\d)?_10[KQ]-[A-Za-z0-9.-]+-\d{3}")
 FACT_ID = re.compile(r"XBRL_[A-Za-z0-9]+_\d{4}_[a-z_]+")  # an XBRL fact returned by the agent's get_financial tool
+CALC_ID = re.compile(r"CALC-\d+")  # a calculator result returned by the agent's calculate tool
 NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?")
 # chunk fields saved with each cited chunk: what the judge and the label sheet show (format_context needs them all)
 SAVED_CHUNK_FIELDS = ("id", "company", "form", "fiscal_year", "fiscal_period", "item", "title", "text")
@@ -44,7 +46,7 @@ def citations(text: str) -> list[str]:
     Bracketed text that isn't shaped like a chunk ID (e.g. "[Calculated as revenue - gross margin]") is the model's
     working, not a citation, so it is ignored rather than counted as an invalid citation."""
     return [cid.strip() for group in CITATION.findall(text) for cid in group.split(",")
-            if CHUNK_ID.fullmatch(cid.strip()) or FACT_ID.fullmatch(cid.strip())]
+            if any(p.fullmatch(cid.strip()) for p in (CHUNK_ID, FACT_ID, CALC_ID))]
 
 
 def numbers(text: str) -> list[float]:
@@ -112,9 +114,18 @@ if __name__ == "__main__":
     parser.add_argument("--agent", action="store_true",
                         help="tool-using agent (agent/loop.py) instead of single-shot RAG; uses the --search and "
                              "--rerank settings for its search tool, always with the company/year filter")
+    parser.add_argument("--resume", metavar="RUN_ID",
+                        help="continue an interrupted run with its original settings (other options are ignored)")
     args = parser.parse_args()
     if args.agent:
         args.filter = "company_year"  # the agent's search tool always filters by the companies/years it names
+    if args.resume:  # same run id, settings and commit; only the unfinished questions are answered
+        settings, git, done = resume_checkpoint(args.resume)
+        args, run_id = argparse.Namespace(**settings), args.resume
+        print(f"resuming {run_id}: {len(done)} questions already answered", flush=True)
+    else:
+        run_id, git = start_checkpoint("answers", vars(args))
+        done = []
 
     split = load_split()
     questions = [q for q in load_questions() if split[q["id"]] == args.split]
@@ -127,8 +138,11 @@ if __name__ == "__main__":
     else:
         rag = RAG(filter_filings=args.filter == "company_year", search=args.search, rerank=args.rerank)
 
-    details = []
+    details = list(done)
+    finished = {row["id"] for row in done}
     for i, q in enumerate(questions, 1):
+        if q["id"] in finished:
+            continue
         start = time.perf_counter()
         text, chunks = rag.answer(q["question"], verbose=False)
         retrieved = {c["id"] for c in chunks}
@@ -148,8 +162,10 @@ if __name__ == "__main__":
         if args.agent:
             row["trace"] = rag.trace  # every tool call and nudge, for error analysis
         details.append(row)
+        save_checkpoint_row(run_id, row)
         status = "refused" if row["refused"] else {True: "correct", False: "wrong", None: "unscored"}[row["correct"]]
-        print(f"{i:>3}/{len(questions)}  {q['id']:<10} {q['type']:<12} {status:<9} {row['seconds']:>5.1f}s")
+        print(f"{i:>3}/{len(questions)}  {q['id']:<10} {q['type']:<12} {status:<9} {row['seconds']:>5.1f}s",
+              flush=True)
 
     groups = defaultdict(list)
     for row in details:
@@ -159,8 +175,8 @@ if __name__ == "__main__":
     metrics = {name: summarize(groups[name]) for name in order if groups[name]}
 
     run = {
-        "run_id": new_run_id("answers"), "stage": "answers", "split": args.split, "note": args.note,
-        "limit": args.limit, **git_state(),
+        "run_id": run_id, "stage": "answers", "split": args.split, "note": args.note,
+        "limit": args.limit, **git,  # git state when the run started (a resumed run must match it)
         "n_questions": len(questions),
         "fingerprint": fingerprint(questions, {
             "gold": gold_settings(),
@@ -176,6 +192,7 @@ if __name__ == "__main__":
                           "max_tokens": None, "system_prompt_sha": hashlib.sha256(
                               (rag.system + json.dumps(TOOLS)).encode()).hexdigest()[:8]}
     save_run(run, details, log=not args.limit)
+    checkpoint_path(run_id).unlink()  # finished: the run details replace the progress file
 
     print(f"\n{run['run_id']}  split={args.split}  filter={args.filter}  search={args.search}"
           f"{'  rerank' if args.rerank else ''}{'  AGENT' if args.agent else ''}  commit={run['commit']}{' (dirty)' if run['dirty'] else ''}"

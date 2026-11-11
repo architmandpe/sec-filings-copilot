@@ -46,6 +46,39 @@ def new_run_id(stage: str) -> str:
     return f"{datetime.now():%Y%m%d-%H%M%S}-{stage}"
 
 
+def checkpoint_path(run_id: str) -> Path:
+    """The progress file of an unfinished run: a header line, then one line per finished question."""
+    return SCRATCH_RUNS_DIR / f"{run_id}.partial.jsonl"
+
+
+def start_checkpoint(stage: str, settings: dict) -> tuple[str, dict]:
+    """Start a run that can be interrupted: returns (run_id, git state at the start) and writes the header."""
+    run_id, git = new_run_id(stage), git_state()
+    SCRATCH_RUNS_DIR.mkdir(parents=True, exist_ok=True)
+    with open(checkpoint_path(run_id), "w") as f:
+        f.write(json.dumps({"settings": settings, "git": git}) + "\n")
+    return run_id, git
+
+
+def resume_checkpoint(run_id: str) -> tuple[dict, dict, list[dict]]:
+    """(settings, git state at the start, finished rows) of an interrupted run.
+
+    Refuses to resume if the code has changed since the run started (or it started with uncommitted changes),
+    because the finished and the remaining questions would then come from two different versions of the system."""
+    with open(checkpoint_path(run_id)) as f:
+        header, *rows = [json.loads(line) for line in f]
+    now = git_state()
+    if header["git"]["dirty"] or now != header["git"]:
+        raise SystemExit(f"can't resume {run_id}: it started at {header['git']}, the code is now {now}")
+    return header["settings"], header["git"], rows
+
+
+def save_checkpoint_row(run_id: str, row: dict) -> None:
+    """Append one finished question to the progress file (written immediately, so an interruption loses nothing)."""
+    with open(checkpoint_path(run_id), "a") as f:
+        f.write(json.dumps(row) + "\n")
+
+
 def run_path(run_id: str) -> Path:
     """Where a run's per-question details are: committed runs first, then quick test runs."""
     for folder in (RUNS_DIR, SCRATCH_RUNS_DIR):
