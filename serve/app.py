@@ -1,6 +1,7 @@
 """HTTP API for the agent: what curl, a UI and (later) Docker, the answer cache and Langfuse talk to.
 
     python -m serve.app        # loads the models once, then serves http://127.0.0.1:8000 (interactive docs at /docs)
+    LLM_URL=http://127.0.0.1:8080 python -m serve.app    # Qwen in a separate mlx_lm.server process (agent/llm.py)
 
 Endpoints
     GET  /health     is the service up, and what it runs (model, retrieval settings, git commit)
@@ -43,7 +44,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.sse import EventSourceResponse, ServerSentEvent
 from pydantic import BaseModel, ConfigDict, Field
 
-from agent.answer import GEN_MODEL, TOP_K
+from agent.answer import TOP_K
+from agent.llm import llm_from_env
 from agent.loop import Agent
 from evals.answers import citations, is_refusal
 from evals.runlog import git_state
@@ -122,7 +124,8 @@ def answer_view(text: str, sources: list[dict]) -> dict:
 async def lifespan(app: FastAPI):
     """Runs once: load everything before the first request is accepted, release the worker at shutdown."""
     print("Loading the index and the models...", flush=True)
-    app.state.agent = await asyncio.get_running_loop().run_in_executor(worker, Agent)  # on the model thread
+    # on the model thread; LLM_URL set = Qwen in a model server, else in this process
+    app.state.agent = await asyncio.get_running_loop().run_in_executor(worker, lambda: Agent(llm=llm_from_env()))
     app.state.git = git_state()  # the code this server runs, recorded in every log line
     app.state.answered = answered_ids(LOG_PATH)
     app.state.started = time.time()
@@ -136,7 +139,7 @@ app = FastAPI(title="SEC Filings Copilot", lifespan=lifespan)
 @app.get("/health")
 async def health() -> dict:
     agent = app.state.agent
-    return {"status": "ok", "generator": GEN_MODEL, "retrieval": agent.retriever.config(),
+    return {"status": "ok", "llm": agent.llm.config(), "retrieval": agent.retriever.config(),
             "chunks": len(agent.retriever.chunks), "companies": len(agent.financials.ciks), **app.state.git,
             "uptime_seconds": round(time.time() - app.state.started)}
 

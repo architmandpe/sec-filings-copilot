@@ -9,7 +9,8 @@ Tools (Qwen3's native tool-calling format: the chat template lists them, the mod
   get_financial(company, metric, fiscal_year)    exact XBRL numbers (agent/financials.py), cited by fact ID
   calculate(expression)                          exact arithmetic (agent/calculate.py)
 XBRL results are returned as pseudo-chunks (fact ID + one-line description), so citation checks and the judge
-treat them like passages. No framework: the loop is the code below (decision D10).
+treat them like passages. No framework: the loop is the code below (decision D10). The model is reached through
+agent/llm.py: in this process (default) or in an mlx_lm.server process (Agent(llm=ServerLLM(url))).
 
     python -m agent.loop        # sample questions with the tool trace
 """
@@ -17,9 +18,10 @@ treat them like passages. No framework: the loop is the code below (decision D10
 import json
 import re
 
-from agent.answer import GEN_MODEL, REFUSAL, TOP_K, format_context
+from agent.answer import REFUSAL, TOP_K, format_context
 from agent.calculate import calculate
 from agent.financials import METRICS, Financials, describe
+from agent.llm import LocalLLM
 from retrieval.filters import FilingFilter
 from retrieval.search import Retriever
 
@@ -128,13 +130,13 @@ def fact_id(result: dict) -> str:
 class Agent:
     """Holds the retriever, the XBRL tool and the generator; answer() runs the loop for one question."""
 
-    def __init__(self, search: str = "hybrid", rerank: bool = True):
-        from mlx_lm import load
+    def __init__(self, search: str = "hybrid", rerank: bool = True, llm=None):
+        """llm: the generator (agent/llm.py); None = LocalLLM, Qwen in this process, as in every evaluated run."""
         self.retriever = Retriever(mode=search, rerank=rerank)
         self.filing_filter = FilingFilter(self.retriever.chunks)
         self.financials = Financials()
         self.system = system_prompt(sorted(self.financials.ciks))
-        self.model, self.tokenizer = load(GEN_MODEL)
+        self.llm = llm if llm is not None else LocalLLM()
         self.trace = []  # tool calls of the last question, for evals and debugging
 
     def run_tool(self, name: str, args: dict, question: str, sources: dict) -> str:
@@ -169,10 +171,7 @@ class Agent:
         return f"Error: unknown tool {name!r}; use get_financial, search_filings or calculate"
 
     def generate(self, messages: list[dict]) -> str:
-        from mlx_lm import generate
-        prompt = self.tokenizer.apply_chat_template(messages, tools=TOOLS, add_generation_prompt=True,
-                                                    enable_thinking=False)
-        return generate(self.model, self.tokenizer, prompt=prompt, max_tokens=STEP_TOKENS)
+        return self.llm.chat(messages, TOOLS, STEP_TOKENS)
 
     def check_final(self, reply: str, question: str, messages: list[dict],
                     sources: dict[str, dict]) -> tuple[str, str] | None:
