@@ -17,6 +17,7 @@ agent/llm.py: in this process (default) or in an mlx_lm.server process (Agent(ll
 
 import json
 import re
+import time
 
 from agent.answer import REFUSAL, TOP_K, format_context
 from agent.calculate import calculate
@@ -138,6 +139,9 @@ class Agent:
         self.system = system_prompt(sorted(self.financials.ciks))
         self.llm = llm if llm is not None else LocalLLM()
         self.trace = []  # tool calls of the last question, for evals and debugging
+        # seconds per part of the last question: {"step", "part": "model" or a tool name, "seconds"}; kept out of the
+        # trace, which evals compare between runs (times differ run to run)
+        self.timings = []
 
     def run_tool(self, name: str, args: dict, question: str, sources: dict) -> str:
         """Run one tool call; add what it returned to `sources` (ID -> chunk); return the text the model sees."""
@@ -200,15 +204,21 @@ class Agent:
 
         on_step: optional function called with each trace entry as soon as it happens (the API streams them)."""
         messages = [{"role": "system", "content": self.system}, {"role": "user", "content": question}]
-        sources, self.trace, nudges = {}, [], 0
+        sources, self.trace, self.timings, nudges = {}, [], [], 0
 
         def record(entry: dict) -> None:
             self.trace.append(entry)
             if on_step is not None:
                 on_step(entry)
 
+        def timed(step: int, part: str, function, *args):
+            start = time.perf_counter()
+            result = function(*args)
+            self.timings.append({"step": step, "part": part, "seconds": round(time.perf_counter() - start, 3)})
+            return result
+
         for step in range(MAX_STEPS):
-            reply = self.generate(messages)
+            reply = timed(step, "model", self.generate, messages)
             calls = TOOL_CALL.findall(reply)
             if not calls:
                 nudge = self.check_final(reply, question, messages, sources) if nudges < MAX_NUDGES else None
@@ -232,14 +242,14 @@ class Agent:
                                             for n, a in parsed]})
             for name, args in parsed:
                 output = (f"Error: could not parse the tool call {args['raw']!r} as JSON" if name == "invalid"
-                          else self.run_tool(name, args, question, sources))
+                          else timed(step, name, self.run_tool, name, args, question, sources))
                 messages.append({"role": "tool", "content": output})
                 record({"step": step, "tool": name, "arguments": args, "output": output[:300]})
                 if verbose:
                     print(f"  [{step}] {name}({json.dumps(args)}) -> {output[:150]!r}")
         # step limit reached: ask for the answer from what has been gathered, without further tools
         messages.append({"role": "user", "content": "Give your final answer now from the tool results above."})
-        reply = self.generate(messages)
+        reply = timed(MAX_STEPS, "model", self.generate, messages)
         record({"step": MAX_STEPS, "tool": "step_limit", "arguments": {}, "output": ""})
         return TOOL_CALL.sub("", reply).strip(), list(sources.values())
 
